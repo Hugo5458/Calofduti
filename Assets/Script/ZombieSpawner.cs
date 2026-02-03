@@ -1,3 +1,4 @@
+// Refresh
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
@@ -120,7 +121,7 @@ public class ZombieSpawner : MonoBehaviour
             if (ai != null)
             {
                 ai.damage *= 1 + (currentWave * difficultyIncreaseRate * 0.5f);
-                ai.runSpeed *= 1 + (currentWave * difficultyIncreaseRate * 0.3f);
+                ai.moveSpeed *= 1 + (currentWave * difficultyIncreaseRate * 0.3f);
             }
         }
         
