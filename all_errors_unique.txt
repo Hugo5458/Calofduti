@@ -1,0 +1,1 @@
+﻿Assets\Script\ZombieSpawner.cs(123,20): error CS1061: 'ZombieAI' does not contain a definition for 'runSpeed' and no accessible extension method 'runSpeed' accepting a first argument of type 'ZombieAI' could be found (are you missing a using directive or an assembly reference?)
