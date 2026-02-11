@@ -34,13 +34,34 @@ public class Weapon : MonoBehaviour
     private AudioSource audioSource;
     private float nextTimeToFire = 0f;
     private bool isReloading = false;
-    private Animator animator;
+    private Animation anim;
     
     void Start()
     {
         currentAmmo = maxAmmo;
         audioSource = GetComponent<AudioSource>();
-        animator = GetComponent<Animator>();
+        
+        // Buscar componente Animation (legacy) en este objeto o en los hijos
+        anim = GetComponent<Animation>();
+        if (anim == null)
+        {
+            anim = GetComponentInChildren<Animation>();
+        }
+        
+        if (anim != null)
+        {
+            Debug.Log("[Weapon] Animation encontrado en: " + anim.gameObject.name);
+            
+            // Forzar que la animación Shoot NO se repita en loop
+            if (anim.GetClip("Shoot") != null)
+            {
+                anim["Shoot"].wrapMode = WrapMode.Once;
+            }
+        }
+        else
+        {
+            Debug.LogWarning("[Weapon] NO se encontró componente Animation en " + gameObject.name + " ni en sus hijos.");
+        }
         
         if (audioSource == null)
         {
@@ -59,14 +80,14 @@ public class Weapon : MonoBehaviour
     {
         if (isReloading) return;
         
-        // Recargar con R o automáticamente si no hay balas
-        if (Input.GetKeyDown(KeyCode.R) || (currentAmmo <= 0 && reserveAmmo > 0))
+        // Recargar con R
+        if (Input.GetKeyDown(KeyCode.R) && reserveAmmo > 0 && currentAmmo < maxAmmo)
         {
             StartCoroutine(Reload());
             return;
         }
         
-        // Disparar
+        // Disparar manteniendo click pulsado
         if (Input.GetButton("Fire1") && Time.time >= nextTimeToFire)
         {
             nextTimeToFire = Time.time + fireRate;
@@ -82,6 +103,12 @@ public class Weapon : MonoBehaviour
             if (emptySound != null && audioSource != null)
             {
                 audioSource.PlayOneShot(emptySound);
+            }
+            
+            // Auto-recargar si quedan balas en reserva
+            if (reserveAmmo > 0)
+            {
+                StartCoroutine(Reload());
             }
             return;
         }
@@ -102,10 +129,11 @@ public class Weapon : MonoBehaviour
             audioSource.PlayOneShot(shootSound);
         }
         
-        // Animación de disparo
-        if (animator != null)
+        // Animación de disparo (legacy Animation)
+        if (anim != null && anim.GetClip("Shoot") != null)
         {
-            animator.SetTrigger("Shoot");
+            anim.Rewind("Shoot");
+            anim.Play("Shoot");
         }
         
         // Raycast para detectar impacto
@@ -149,13 +177,18 @@ public class Weapon : MonoBehaviour
             audioSource.PlayOneShot(reloadSound);
         }
         
-        // Animación de recarga
-        if (animator != null)
+        // Animación de recarga (legacy Animation)
+        float waitTime = reloadTime;
+        if (anim != null && anim.GetClip("Reload") != null)
         {
-            animator.SetTrigger("Reload");
+            anim["Reload"].wrapMode = WrapMode.Once;
+            anim.Rewind("Reload");
+            anim.Play("Reload");
+            // Esperar la duración real de la animación de recarga
+            waitTime = anim["Reload"].length;
         }
         
-        yield return new WaitForSeconds(reloadTime);
+        yield return new WaitForSeconds(waitTime);
         
         int ammoNeeded = maxAmmo - currentAmmo;
         int ammoToReload = Mathf.Min(ammoNeeded, reserveAmmo);
