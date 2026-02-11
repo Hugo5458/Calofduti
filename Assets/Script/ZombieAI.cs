@@ -1,3 +1,4 @@
+// Fix applied to refresh references
 using UnityEngine;
 
 /// <summary>
