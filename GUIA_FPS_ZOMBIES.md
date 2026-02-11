@@ -311,6 +311,31 @@
 - Añade colliders al terreno
 - Verifica la posición Y del FPSController
 
+### "El zombie se mete en el suelo"
+- El script ZombieAI ya incluye `SnapToGround()` que mantiene al zombie sobre el terreno
+- En el prefab del Zombie, asegúrate de que tiene un **Rigidbody** con:
+  - **Use Gravity**: ✓ activado
+  - **Freeze Rotation**: ✓ X, ✓ Y, ✓ Z
+  - **Collision Detection**: Continuous (en vez de Discrete)
+- Verifica que el terreno tenga un **Terrain Collider** activo
+- En el Inspector del ZombieAI, configura **Ground Layer** para incluir la capa del terreno
+
+### "El césped y los brotes son tangibles / bloquean al jugador"
+- **Opción A (con script):**
+  1. Crea un GameObject vacío llamado "VegetationManager"
+  2. Añade el script **VegetationSetup**
+  3. Arrastra el objeto padre de la vegetación al campo "Vegetation Parent"
+  4. El script desactivará automáticamente todos los colliders de la vegetación
+- **Opción B (manual rápida):**
+  1. Selecciona los objetos de césped/brotes en la escena
+  2. En el Inspector, desactiva o elimina sus Colliders (Box Collider, Mesh Collider)
+- **Opción C (por Layers - recomendada):**
+  1. Ve a Edit > Project Settings > Tags and Layers
+  2. Crea un nuevo Layer llamado "Vegetation"
+  3. Selecciona todos los objetos de césped/brotes y ponlos en el Layer "Vegetation"
+  4. Ve a Edit > Project Settings > Physics
+  5. En la matriz de colisiones, **desmarca** la casilla entre "Vegetation" y "Default" (y cualquier otra capa de jugador/zombie)
+
 ---
 
 ## 🎨 Mejoras Opcionales
