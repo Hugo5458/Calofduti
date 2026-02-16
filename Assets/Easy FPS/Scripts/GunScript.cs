@@ -539,6 +539,8 @@ public class GunScript : MonoBehaviour {
 	 * Drawing the crossHair.
 	 */
 	void DrawCrosshair(){
+	// Mira desactivada - se usa la mira del Canvas (DynamicCrosshair)
+	return;
 		GUI.color = new Color(GUI.color.r, GUI.color.g, GUI.color.b, fadeout_value);
 		if(Input.GetAxis("Fire2") == 0){//if not aiming draw
 			GUI.DrawTexture(new Rect(vec2(left_pos_crosshair).x + position_x(-expandValues_crosshair.x) + Screen.width/2,Screen.height/2 + vec2(left_pos_crosshair).y, vec2(size_crosshair_horizontal).x, vec2(size_crosshair_horizontal).y), vertical_crosshair);//left
