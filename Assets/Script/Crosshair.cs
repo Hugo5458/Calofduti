@@ -44,30 +44,7 @@ public class Crosshair : MonoBehaviour
     
     void OnGUI()
     {
-        if (texture == null) return;
-        
-        float centerX = Screen.width / 2f;
-        float centerY = Screen.height / 2f;
-        float adjustedGap = gap + currentSpread;
-        
-        GUI.color = color;
-        
-        // Línea superior
-        GUI.DrawTexture(new Rect(centerX - thickness / 2, centerY - adjustedGap - size, thickness, size), texture);
-        
-        // Línea inferior
-        GUI.DrawTexture(new Rect(centerX - thickness / 2, centerY + adjustedGap, thickness, size), texture);
-        
-        // Línea izquierda
-        GUI.DrawTexture(new Rect(centerX - adjustedGap - size, centerY - thickness / 2, size, thickness), texture);
-        
-        // Línea derecha
-        GUI.DrawTexture(new Rect(centerX + adjustedGap, centerY - thickness / 2, size, thickness), texture);
-        
-        // Punto central
-        if (showDot)
-        {
-            GUI.DrawTexture(new Rect(centerX - dotSize / 2, centerY - dotSize / 2, dotSize, dotSize), texture);
-        }
+        // Mira desactivada - se usa la mira del Canvas (DynamicCrosshair)
+        return;
     }
 }
