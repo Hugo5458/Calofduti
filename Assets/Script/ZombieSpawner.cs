@@ -1,4 +1,4 @@
-// Refresh
+// Fix applied to refresh references
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
