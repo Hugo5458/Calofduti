@@ -151,11 +151,16 @@ private GunScript gun;
  */
 void WeaponRotation(){
 	if(!weapon){
-		weapon = GameObject.FindGameObjectWithTag("Weapon");
+		try{
+			weapon = GameObject.FindGameObjectWithTag("Weapon");
+		}catch(System.Exception){
+			// Tag "Weapon" no definido, ignorar
+			return;
+		}
 		if(weapon){
 			if(weapon.GetComponent<GunScript>()){
 				try{
-					gun = GameObject.FindGameObjectWithTag("Weapon").GetComponent<GunScript>();
+					gun = weapon.GetComponent<GunScript>();
 				}catch(System.Exception ex){
 					print("gun not found->"+ex.StackTrace.ToString());
 				}

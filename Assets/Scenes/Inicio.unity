@@ -122,6 +122,58 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &336700306
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 336700308}
+  - component: {fileID: 336700307}
+  m_Layer: 0
+  m_Name: MenuManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &336700307
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 336700306}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 809e6a2afb8e44547b5bdca01fb99faa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  botonColor: {r: 0.15, g: 0.15, b: 0.15, a: 0.9}
+  botonHoverColor: {r: 0.8, g: 0.2, b: 0.2, a: 1}
+  textoColor: {r: 1, g: 1, b: 1, a: 1}
+  panelColor: {r: 0, g: 0, b: 0, a: 0.7}
+  sliderFillColor: {r: 0.8, g: 0.2, b: 0.2, a: 1}
+  imagenFondo: {fileID: 21300000, guid: d0cd67b8fa11f7f46a92e9fb6b775bce, type: 3}
+  musicaFondo: {fileID: 0}
+  sonidoClick: {fileID: 0}
+--- !u!4 &336700308
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 336700306}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -68.56408, y: 77.58702, z: 73.66662}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &593320565
 GameObject:
   m_ObjectHideFlags: 0
@@ -314,3 +366,4 @@ SceneRoots:
   m_Roots:
   - {fileID: 593320568}
   - {fileID: 2074924421}
+  - {fileID: 336700308}
