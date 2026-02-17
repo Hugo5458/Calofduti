@@ -157,10 +157,11 @@ public class GunScript : MonoBehaviour {
 	 */
 	void CrossHairExpansionWhenWalking(){
 
-		if(player.GetComponent<Rigidbody>().velocity.magnitude > 1 && Input.GetAxis("Fire1") == 0){//ifnot shooting
+		// CHANGED: Use pmS.currentSpeed instead of Rigidbody.velocity
+		if(pmS.currentSpeed > 1 && Input.GetAxis("Fire1") == 0){//ifnot shooting
 
 			expandValues_crosshair += new Vector2(20, 40) * Time.deltaTime;
-			if(player.GetComponent<PlayerMovementScript>().maxSpeed < runningSpeed){ //not running
+			if(pmS.maxSpeed < runningSpeed){ //not running
 				expandValues_crosshair = new Vector2(Mathf.Clamp(expandValues_crosshair.x, 0, 10), Mathf.Clamp(expandValues_crosshair.y,0,20));
 				fadeout_value = Mathf.Lerp(fadeout_value, 1, Time.deltaTime * 2);
 			}
