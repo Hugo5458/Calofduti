@@ -622,9 +622,14 @@ public class GunScript : MonoBehaviour {
 	private Vector2 vec2(Vector2 _vec2){
 		return new Vector2(Screen.width * _vec2.x / 100, Screen.height * _vec2.y / 100);
 	}
-	//#
 
+	[Header("Animation")]
 	public Animator handsAnimator;
+	[Header("Animation names")]
+	public string reloadAnimationName = "Player_Reload";
+	public string aimingAnimationName = "Player_AImpose";
+	public string meeleAnimationName = "Character_Malee";
+	
 	/*
 	* Fetching if any current animation is running.
 	* Setting the reload animation upon pressing R.
@@ -644,9 +649,4 @@ public class GunScript : MonoBehaviour {
 		}
 
 	}
-
-	[Header("Animation names")]
-	public string reloadAnimationName = "Player_Reload";
-	public string aimingAnimationName = "Player_AImpose";
-	public string meeleAnimationName = "Character_Malee";
 }
