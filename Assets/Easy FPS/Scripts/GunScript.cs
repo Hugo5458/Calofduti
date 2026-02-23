@@ -41,7 +41,13 @@ public class GunScript : MonoBehaviour {
 		mls = GameObject.FindGameObjectWithTag("Player").GetComponent<MouseLookScript>();
 		player = mls.transform;
 		mainCamera = mls.myCamera;
-		secondCamera = GameObject.FindGameObjectWithTag("SecondCamera").GetComponent<Camera>();
+		
+		GameObject secondCamObj = GameObject.FindGameObjectWithTag("SecondCamera");
+		if(secondCamObj != null)
+			secondCamera = secondCamObj.GetComponent<Camera>();
+		else
+			secondCamera = null;
+		
 		cameraComponent = mainCamera.GetComponent<Camera>();
 		pmS = player.GetComponent<PlayerMovementScript>();
 
@@ -120,7 +126,8 @@ public class GunScript : MonoBehaviour {
 			recoilAmount_z = recoilAmount_z_;
 			currentGunPosition = Vector3.SmoothDamp(currentGunPosition, aimPlacePosition, ref gunPosVelocity, gunAimTime);
 			cameraComponent.fieldOfView = Mathf.SmoothDamp(cameraComponent.fieldOfView, cameraZoomRatio_aiming, ref cameraZoomVelocity, gunAimTime);
-			secondCamera.fieldOfView = Mathf.SmoothDamp(secondCamera.fieldOfView, secondCameraZoomRatio_aiming, ref secondCameraZoomVelocity, gunAimTime);
+			if(secondCamera != null)
+				secondCamera.fieldOfView = Mathf.SmoothDamp(secondCamera.fieldOfView, secondCameraZoomRatio_aiming, ref secondCameraZoomVelocity, gunAimTime);
 		}
 		//if not aiming
 		else{
@@ -130,7 +137,8 @@ public class GunScript : MonoBehaviour {
 			recoilAmount_z = recoilAmount_z_non;
 			currentGunPosition = Vector3.SmoothDamp(currentGunPosition, restPlacePosition, ref gunPosVelocity, gunAimTime);
 			cameraComponent.fieldOfView = Mathf.SmoothDamp(cameraComponent.fieldOfView, cameraZoomRatio_notAiming, ref cameraZoomVelocity, gunAimTime);
-			secondCamera.fieldOfView = Mathf.SmoothDamp(secondCamera.fieldOfView, secondCameraZoomRatio_notAiming, ref secondCameraZoomVelocity, gunAimTime);
+			if(secondCamera != null)
+				secondCamera.fieldOfView = Mathf.SmoothDamp(secondCamera.fieldOfView, secondCameraZoomRatio_notAiming, ref secondCameraZoomVelocity, gunAimTime);
 		}
 
 	}
