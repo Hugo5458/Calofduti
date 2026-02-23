@@ -36,12 +36,19 @@ public class MainMenuUI : MonoBehaviour
 
     // Fuente por defecto
     private Font fuenteDefault;
+    
+    // Constantes para configuración
+    private const string NOMBRE_ESCENA_JUEGO = "SampleScene";
+    private const float BRILLO_MINIMO = 0f;
+    private const float BRILLO_MAXIMO = 1f;
+    private const float VOLUMEN_MINIMO = 0f;
+    private const float VOLUMEN_MAXIMO = 1f;
+    private const float SENSIBILIDAD_MINIMA = 0.5f;
+    private const float SENSIBILIDAD_MAXIMA = 10f;
 
     void Start()
     {
-        fuenteDefault = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        if (fuenteDefault == null)
-            fuenteDefault = Resources.GetBuiltinResource<Font>("Arial.ttf");
+        CargarFuentePorDefecto();
 
         // Configurar cursor
         Cursor.lockState = CursorLockMode.None;
@@ -78,6 +85,28 @@ public class MainMenuUI : MonoBehaviour
 
         // Cargar ajustes guardados
         CargarAjustes();
+    }
+    
+    void CargarFuentePorDefecto()
+    {
+        fuenteDefault = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        if (fuenteDefault == null)
+            fuenteDefault = Resources.GetBuiltinResource<Font>("Arial.ttf");
+    }
+    
+    void OnDestroy()
+    {
+        // Limpiar recursos para evitar fugas de memoria
+        if (fuenteDefault != null)
+        {
+            fuenteDefault = null;
+        }
+        
+        if (audioSource != null)
+        {
+            audioSource.Stop();
+            audioSource.clip = null;
+        }
     }
 
     // ========== EVENT SYSTEM (sin esto no funciona NADA) ==========
@@ -183,7 +212,7 @@ public class MainMenuUI : MonoBehaviour
         // Botón JUGAR
         CrearBoton(contenedor.transform, "JUGAR", 60, () => {
             ReproducirClick();
-            SceneManager.LoadScene("SampleScene");
+            SceneManager.LoadScene(NOMBRE_ESCENA_JUEGO);
         });
 
         // Botón OPCIONES
@@ -290,7 +319,8 @@ public class MainMenuUI : MonoBehaviour
 
         // --- VOLUMEN ---
         CrearTexto(panelAjustesRapidos.transform, "\u266B Volumen", 13, FontStyle.Normal, textoColor, 18);
-        sliderVolumen = CrearSlider(panelAjustesRapidos.transform, 0f, 1f, 1f, (valor) => {
+        sliderVolumen = CrearSlider(panelAjustesRapidos.transform, VOLUMEN_MINIMO, VOLUMEN_MAXIMO, 1f, (valor) => {
+            valor = Mathf.Clamp(valor, VOLUMEN_MINIMO, VOLUMEN_MAXIMO);
             AudioListener.volume = valor;
             PlayerPrefs.SetFloat("Volume", valor);
             PlayerPrefs.Save();
@@ -298,9 +328,11 @@ public class MainMenuUI : MonoBehaviour
 
         // --- BRILLO ---
         CrearTexto(panelAjustesRapidos.transform, "\u2600 Brillo", 13, FontStyle.Normal, textoColor, 18);
-        sliderBrillo = CrearSlider(panelAjustesRapidos.transform, 0f, 1f, 1f, (valor) => {
+        sliderBrillo = CrearSlider(panelAjustesRapidos.transform, BRILLO_MINIMO, BRILLO_MAXIMO, 1f, (valor) => {
+            valor = Mathf.Clamp(valor, BRILLO_MINIMO, BRILLO_MAXIMO);
             if (BrightnessController.Instance != null)
                 BrightnessController.Instance.SetBrightness(valor);
+            PlayerPrefs.SetFloat("Brightness", valor);
             PlayerPrefs.Save();
         });
 
@@ -350,7 +382,8 @@ public class MainMenuUI : MonoBehaviour
 
         // Volumen
         CrearTexto(contenedor.transform, "Volumen", 18, FontStyle.Normal, textoColor, 25);
-        Slider volOpc = CrearSlider(contenedor.transform, 0f, 1f, AudioListener.volume, (valor) => {
+        Slider volOpc = CrearSlider(contenedor.transform, VOLUMEN_MINIMO, VOLUMEN_MAXIMO, AudioListener.volume, (valor) => {
+            valor = Mathf.Clamp(valor, VOLUMEN_MINIMO, VOLUMEN_MAXIMO);
             AudioListener.volume = valor;
             PlayerPrefs.SetFloat("Volume", valor);
             if (sliderVolumen != null) sliderVolumen.value = valor;
@@ -361,7 +394,9 @@ public class MainMenuUI : MonoBehaviour
         // Brillo
         CrearTexto(contenedor.transform, "Brillo", 18, FontStyle.Normal, textoColor, 25);
         float brilloActual = PlayerPrefs.GetFloat("Brightness", 1f);
-        Slider briOpc = CrearSlider(contenedor.transform, 0f, 1f, brilloActual, (valor) => {
+        brilloActual = Mathf.Clamp(brilloActual, BRILLO_MINIMO, BRILLO_MAXIMO);
+        Slider briOpc = CrearSlider(contenedor.transform, BRILLO_MINIMO, BRILLO_MAXIMO, brilloActual, (valor) => {
+            valor = Mathf.Clamp(valor, BRILLO_MINIMO, BRILLO_MAXIMO);
             if (BrightnessController.Instance != null)
                 BrightnessController.Instance.SetBrightness(valor);
             if (sliderBrillo != null) sliderBrillo.value = valor;
@@ -372,7 +407,9 @@ public class MainMenuUI : MonoBehaviour
         // Sensibilidad del ratón
         CrearTexto(contenedor.transform, "Sensibilidad Ratón", 18, FontStyle.Normal, textoColor, 25);
         float sensActual = PlayerPrefs.GetFloat("MouseSensitivity", 2f);
-        CrearSlider(contenedor.transform, 0.5f, 5f, sensActual, (valor) => {
+        sensActual = Mathf.Clamp(sensActual, SENSIBILIDAD_MINIMA, SENSIBILIDAD_MAXIMA);
+        CrearSlider(contenedor.transform, SENSIBILIDAD_MINIMA, SENSIBILIDAD_MAXIMA, sensActual, (valor) => {
+            valor = Mathf.Clamp(valor, SENSIBILIDAD_MINIMA, SENSIBILIDAD_MAXIMA);
             PlayerPrefs.SetFloat("MouseSensitivity", valor);
         });
 
@@ -393,11 +430,13 @@ public class MainMenuUI : MonoBehaviour
     {
         // Volumen
         float vol = PlayerPrefs.GetFloat("Volume", 1f);
+        vol = Mathf.Clamp(vol, VOLUMEN_MINIMO, VOLUMEN_MAXIMO);
         AudioListener.volume = vol;
         if (sliderVolumen != null) sliderVolumen.value = vol;
 
         // Brillo
         float brillo = PlayerPrefs.GetFloat("Brightness", 1f);
+        brillo = Mathf.Clamp(brillo, BRILLO_MINIMO, BRILLO_MAXIMO);
         if (sliderBrillo != null) sliderBrillo.value = brillo;
         if (BrightnessController.Instance != null)
             BrightnessController.Instance.SetBrightness(brillo);
@@ -407,7 +446,14 @@ public class MainMenuUI : MonoBehaviour
     {
         if (sonidoClick != null && audioSource != null)
         {
-            audioSource.PlayOneShot(sonidoClick);
+            try
+            {
+                audioSource.PlayOneShot(sonidoClick);
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning($"Error al reproducir sonido de clic: {ex.Message}");
+            }
         }
     }
 
