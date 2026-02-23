@@ -79,11 +79,8 @@ public class GameManager : MonoBehaviour
     {
         if (isGameOver) return;
         
-        // Pausar con ESC
-        if (Input.GetKeyDown(KeyCode.Escape))
-        {
-            TogglePause();
-        }
+        // NOTA: La pausa con ESC la gestiona AutoPauseMenuTool.cs
+        // No duplicar aquí para evitar conflictos
     }
     
     public void AddScore(int points)

@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
 using UnityEngine.SceneManagement;
 
 /// <summary>
@@ -10,12 +9,12 @@ using UnityEngine.SceneManagement;
 public class GameUI : MonoBehaviour
 {
     [Header("Elementos del HUD")]
-    public TextMeshProUGUI healthText;
-    public TextMeshProUGUI ammoText;
-    public TextMeshProUGUI scoreText;
-    public TextMeshProUGUI waveText;
-    public TextMeshProUGUI timeText;
-    public TextMeshProUGUI enemiesText;
+    public Text healthText;
+    public Text ammoText;
+    public Text scoreText;
+    public Text waveText;
+    public Text timeText;
+    public Text enemiesText;
     
     [Header("Barras de Progreso")]
     public Slider healthBar;
@@ -29,13 +28,13 @@ public class GameUI : MonoBehaviour
     public Image criticalHealthWarning;
     
     [Header("Contadores de Munición")]
-    public TextMeshProUGUI currentAmmoText;
-    public TextMeshProUGUI totalAmmoText;
-    public TextMeshProUGUI weaponNameText;
+    public Text currentAmmoText;
+    public Text totalAmmoText;
+    public Text weaponNameText;
     
     [Header("Sistema de Notificaciones")]
     public GameObject notificationPanel;
-    public TextMeshProUGUI notificationText;
+    public Text notificationText;
     public float notificationDuration = 3f;
     
     [Header("Elementos de Minimapa")]
@@ -46,7 +45,7 @@ public class GameUI : MonoBehaviour
     // Referencias a componentes del juego
     private GunScript playerGun;
     private PlayerMovementScript playerMovement;
-    private PauseMenu pauseMenu;
+    private AutoPauseMenuTool pauseMenu;
     
     // Variables de estado del juego
     private int currentScore = 0;
@@ -92,7 +91,7 @@ public class GameUI : MonoBehaviour
         }
         
         // Buscar sistema de pausa
-        pauseMenu = FindObjectOfType<PauseMenu>();
+        pauseMenu = FindObjectOfType<AutoPauseMenuTool>();
         
         // Si no hay referencias asignadas, buscarlas automáticamente
         if (healthBar == null)

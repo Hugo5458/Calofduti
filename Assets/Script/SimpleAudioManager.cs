@@ -69,7 +69,7 @@ public class SimpleAudioManager : MonoBehaviour
         {
             GameObject uiObj = new GameObject("UISource");
             uiObj.transform.SetParent(transform);
-            uiSource = uiSource.AddComponent<AudioSource>();
+            uiSource = uiObj.AddComponent<AudioSource>();
             uiSource.loop = false;
             uiSource.playOnAwake = false;
         }

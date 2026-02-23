@@ -9,7 +9,7 @@ public class GameController : MonoBehaviour
     public static GameController Instance;
     
     [Header("Referencias a Sistemas")]
-    public PauseMenu pauseMenu;
+    public AutoPauseMenuTool pauseMenu;
     public GameUI gameUI;
     public AudioManager audioManager;
     
@@ -82,7 +82,7 @@ public class GameController : MonoBehaviour
     {
         // Buscar sistemas si no están asignados
         if (pauseMenu == null)
-            pauseMenu = FindObjectOfType<PauseMenu>();
+            pauseMenu = FindObjectOfType<AutoPauseMenuTool>();
             
         if (gameUI == null)
             gameUI = FindObjectOfType<GameUI>();
@@ -145,11 +145,8 @@ public class GameController : MonoBehaviour
         if (IsInMenuScene() && !allowPauseInMenu)
             return;
             
-        // Input de pausa (ESC)
-        if (Input.GetKeyDown(KeyCode.Escape))
-        {
-            TogglePause();
-        }
+        // NOTA: La pausa con ESC la gestiona AutoPauseMenuTool.cs
+        // No duplicar aquí para evitar conflictos
         
         // Input de reinicio (para testing)
         if (Input.GetKeyDown(KeyCode.F5))

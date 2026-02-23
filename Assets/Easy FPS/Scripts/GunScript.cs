@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.UI;
 using System.Collections;
 //using UnityStandardAssets.ImageEffects;
 
@@ -85,7 +86,7 @@ public class GunScript : MonoBehaviour {
 		// Buscar punto de spawn de balas con validación
 		GameObject bulletSpawnObj = GameObject.FindGameObjectWithTag("BulletSpawn");
 		if (bulletSpawnObj != null)
-			bulletSpawnPlace = bulletSpawnObj.transform;
+			bulletSpawnPlace = bulletSpawnObj;
 		else
 			Debug.LogWarning("No se encontró objeto con tag 'BulletSpawn'");
 		
@@ -471,7 +472,18 @@ public class GunScript : MonoBehaviour {
 	private GameObject holdFlash;
 	private GameObject holdSmoke;
 
+	void ShootMethod()
+	{
+		if(waitTillNextFire > 0) return;
+		waitTillNextFire = 1;
+
 		if(bulletsInTheGun > 0){
+			bulletsInTheGun--;
+
+			RecoilMath();
+
+			if(shoot_sound_source != null)
+				shoot_sound_source.Play();
 
 			// Validar que el array muzzelFlash tenga elementos
 			if (muzzelFlash != null && muzzelFlash.Length > 0)
@@ -487,7 +499,7 @@ public class GunScript : MonoBehaviour {
 				
 				if (muzzelSpawn != null && muzzelFlash[randomNumberForMuzzelFlash] != null)
 				{
-					holdFlash = Instantiate(muzzelFlash[randomNumberForMuzzelFlash], muzzelSpawn.transform.position /*- muzzelPosition*/, muzzelSpawn.transform.rotation * Quaternion.Euler(0,0,90) ) as GameObject;
+					holdFlash = Instantiate(muzzelFlash[randomNumberForMuzzelFlash], muzzelSpawn.transform.position, muzzelSpawn.transform.rotation * Quaternion.Euler(0,0,90)) as GameObject;
 					if (holdFlash != null && muzzelSpawn != null)
 						holdFlash.transform.parent = muzzelSpawn.transform;
 				}
@@ -495,9 +507,11 @@ public class GunScript : MonoBehaviour {
 			else
 			{
 				Debug.LogWarning("muzzelFlash array is null or empty");
-
+			}
 		}
-
+		else if(!reloading){
+			StartCoroutine("Reload_Animation");
+		}
 	}
 
 
@@ -561,13 +575,13 @@ public class GunScript : MonoBehaviour {
 	 * And drawing CrossHair from here.
 	 */
 	[Tooltip("HUD bullets to display bullet count on screen. Will be find under name 'HUD_bullets' in scene.")]
-	public TextMesh HUD_bullets;
+	public Text HUD_bullets;
 	void OnGUI(){
 		if(!HUD_bullets){
 			try{
-				HUD_bullets = GameObject.Find("HUD_bullets");
-				if (HUD_bullets != null)
-					HUD_bullets = HUD_bullets.GetComponent<TextMesh>();
+				GameObject hudObj = GameObject.Find("HUD_bullets");
+				if (hudObj != null)
+					HUD_bullets = hudObj.GetComponent<Text>();
 			}
 			catch(System.Exception ex){
 				Debug.LogWarning("Couldnt find the HUD_Bullets ->" + ex.Message);

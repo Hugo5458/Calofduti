@@ -19,7 +19,7 @@ public class SimpleGameUI : MonoBehaviour
     
     // Referencias
     private GunScript playerGun;
-    private SimplePauseMenu pauseMenu;
+    private AutoPauseMenuTool pauseMenu;
     
     // Variables de estado
     private int currentScore = 0;
@@ -54,7 +54,7 @@ public class SimpleGameUI : MonoBehaviour
         }
         
         // Buscar sistema de pausa
-        pauseMenu = FindObjectOfType<SimplePauseMenu>();
+        pauseMenu = FindObjectOfType<AutoPauseMenuTool>();
         
         // Buscar componentes si no están asignados
         if (healthBar == null)

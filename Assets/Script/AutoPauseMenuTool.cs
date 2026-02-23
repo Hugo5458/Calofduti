@@ -1,752 +1,649 @@
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
+using UnityEngine.SceneManagement;
+using UnityEngine.EventSystems;
+using System.Collections;
 
 /// <summary>
-/// Tool automática que crea el menú de pausa más profesional al presionar ESC
+/// MENÚ DE PAUSA PROFESIONAL - AUTO-GENERADO
+/// 
+/// INSTRUCCIONES:
+/// 1. Crea un GameObject vacío en tu escena de juego (SampleScene)
+/// 2. Añade SOLO este script
+/// 3. ¡Listo! Pulsa ESC para pausar
+/// 
+/// IMPORTANTE: Este script maneja ESC internamente.
+/// Si tienes otros scripts que también usan ESC para pausar
+/// (GameManager, PauseMenu, SimplePauseMenu, etc.),
+/// desactiva su lógica de pausa para evitar conflictos.
+/// 
+/// Funcionalidades:
+/// - Reanudar
+/// - Control de Volumen (slider)
+/// - Control de Brillo (slider)
+/// - Salir al Menú Principal
 /// </summary>
 public class AutoPauseMenuTool : MonoBehaviour
 {
-    [Header("Configuración Visual")]
-    public Color backgroundColor = new Color(0, 0, 0, 0.85f);
-    public Color buttonColor = new Color(0.15f, 0.15f, 0.15f, 0.9f);
-    public Color buttonHoverColor = new Color(0.2f, 0.4f, 0.8f, 1f);
-    public Color textColor = Color.white;
-    public Color titleColor = new Color(0.8f, 0.8f, 0.8f, 1f);
-    
-    [Header("Animación")]
-    public bool enableAnimations = true;
-    public float animationSpeed = 0.3f;
-    
-    // Canvas y paneles
-    private Canvas pauseCanvas;
-    private GameObject mainPanel;
-    private GameObject settingsPanel;
-    private GameObject confirmPanel;
-    
-    // Botones principales
-    private Button resumeButton;
-    private Button settingsButton;
-    private Button restartButton;
-    private Button mainMenuButton;
-    private Button quitButton;
-    
-    // Botones de configuración
-    private Button backButton;
-    private Slider volumeSlider;
-    private Slider sensitivitySlider;
-    private Toggle fullscreenToggle;
-    
-    // Botones de confirmación
-    private Button confirmYesButton;
-    private Button confirmNoButton;
-    private TextMeshProUGUI confirmText;
-    
+    [Header("Escena del Menú Principal")]
+    [Tooltip("Nombre de la escena del menú principal")]
+    public string mainMenuSceneName = "Inicio";
+
+    [Header("Colores del Menú")]
+    public Color fondoColor = new Color(0.02f, 0.02f, 0.05f, 0.92f);
+    public Color botonColor = new Color(0.12f, 0.12f, 0.15f, 0.95f);
+    public Color botonHoverColor = new Color(0.85f, 0.25f, 0.25f, 1f);
+    public Color textoColor = new Color(0.95f, 0.95f, 0.95f, 1f);
+    public Color accentColor = new Color(0.85f, 0.25f, 0.25f, 1f);
+
     // Estado
     private bool isPaused = false;
-    private Vector3 originalButtonScale;
-    private string pendingAction = "";
-    
+    private bool menuCreated = false;
+
+    // UI References
+    private Canvas pauseCanvas;
+    private GameObject panelFondo;
+    private GameObject panelMenu;
+    private GameObject panelOpciones;
+    private Slider sliderVolumen;
+    private Slider sliderBrillo;
+    private Text textoVolumenValor;
+    private Text textoBrilloValor;
+
+    // Fuente
+    private Font fuente;
+
     void Start()
     {
-        CreatePauseMenu();
-        HideAllPanels();
+        fuente = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        if (fuente == null)
+            fuente = Resources.GetBuiltinResource<Font>("Arial.ttf");
     }
-    
+
     void Update()
     {
         if (Input.GetKeyDown(KeyCode.Escape))
         {
+            if (!menuCreated)
+            {
+                CrearMenuCompleto();
+                menuCreated = true;
+            }
+
             TogglePause();
         }
     }
-    
-    void CreatePauseMenu()
+
+    // ============================
+    //  CONTROL DE PAUSA
+    // ============================
+
+    void TogglePause()
     {
-        Debug.Log("🎮 Creando menú de pausa profesional...");
-        
-        // Crear Canvas principal
-        pauseCanvas = CreateCanvas();
-        
-        // Crear paneles
-        mainPanel = CreateMainPanel();
-        settingsPanel = CreateSettingsPanel();
-        confirmPanel = CreateConfirmPanel();
-        
-        // Ocultar inicialmente
-        HideAllPanels();
-        
-        Debug.Log("✅ Menú de pausa creado exitosamente");
+        if (isPaused)
+            Reanudar();
+        else
+            Pausar();
     }
-    
-    Canvas CreateCanvas()
+
+    void Pausar()
     {
-        GameObject canvasObj = new GameObject("AutoPauseCanvas");
-        Canvas canvas = canvasObj.AddComponent<Canvas>();
-        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        canvas.sortingOrder = 10000;
-        
+        isPaused = true;
+        Time.timeScale = 0f;
+
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+
+        // Mostrar menú principal, ocultar opciones
+        if (panelFondo != null) panelFondo.SetActive(true);
+        if (panelMenu != null) panelMenu.SetActive(true);
+        if (panelOpciones != null) panelOpciones.SetActive(false);
+
+        // Animación de entrada
+        StartCoroutine(AnimarEntrada());
+    }
+
+    void Reanudar()
+    {
+        isPaused = false;
+        Time.timeScale = 1f;
+
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+
+        if (panelFondo != null) panelFondo.SetActive(false);
+        if (panelMenu != null) panelMenu.SetActive(false);
+        if (panelOpciones != null) panelOpciones.SetActive(false);
+    }
+
+    public bool IsPaused()
+    {
+        return isPaused;
+    }
+
+    // ============================
+    //  ANIMACIÓN DE ENTRADA
+    // ============================
+
+    IEnumerator AnimarEntrada()
+    {
+        if (panelMenu == null) yield break;
+
+        CanvasGroup cg = panelMenu.GetComponent<CanvasGroup>();
+        if (cg == null) cg = panelMenu.AddComponent<CanvasGroup>();
+
+        RectTransform rt = panelMenu.GetComponent<RectTransform>();
+
+        cg.alpha = 0f;
+        rt.localScale = Vector3.one * 0.85f;
+
+        float duracion = 0.2f;
+        float tiempo = 0f;
+
+        while (tiempo < duracion)
+        {
+            tiempo += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(tiempo / duracion);
+            // Ease out cubic
+            float ease = 1f - Mathf.Pow(1f - t, 3f);
+
+            cg.alpha = Mathf.Lerp(0f, 1f, ease);
+            rt.localScale = Vector3.Lerp(Vector3.one * 0.85f, Vector3.one, ease);
+
+            yield return null;
+        }
+
+        cg.alpha = 1f;
+        rt.localScale = Vector3.one;
+    }
+
+    // ============================
+    //  CREACIÓN DEL MENÚ COMPLETO
+    // ============================
+
+    void CrearMenuCompleto()
+    {
+        // Asegurar EventSystem
+        if (FindObjectOfType<EventSystem>() == null)
+        {
+            GameObject esObj = new GameObject("EventSystem_Pausa");
+            esObj.AddComponent<EventSystem>();
+            esObj.AddComponent<StandaloneInputModule>();
+        }
+
+        // Canvas
+        GameObject canvasObj = new GameObject("PauseMenuCanvas");
+        pauseCanvas = canvasObj.AddComponent<Canvas>();
+        pauseCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        pauseCanvas.sortingOrder = 900; // Debajo del BrightnessController (999) pero encima de todo lo demás
+
         CanvasScaler scaler = canvasObj.AddComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1920, 1080);
-        
+        scaler.matchWidthOrHeight = 0.5f;
+
         canvasObj.AddComponent<GraphicRaycaster>();
-        
-        return canvas;
+
+        // Fondo oscuro (cubre toda la pantalla)
+        panelFondo = CrearPanelFullscreen("Fondo", pauseCanvas.transform, fondoColor);
+
+        // Panel del menú principal
+        panelMenu = CrearPanelCentral("MenuPrincipal", pauseCanvas.transform, 420, 520);
+        CrearContenidoMenuPrincipal();
+
+        // Panel de opciones
+        panelOpciones = CrearPanelCentral("PanelOpciones", pauseCanvas.transform, 460, 420);
+        CrearContenidoOpciones();
+
+        // Ocultar todo inicialmente
+        panelFondo.SetActive(false);
+        panelMenu.SetActive(false);
+        panelOpciones.SetActive(false);
     }
-    
-    GameObject CreateMainPanel()
+
+    // ============================
+    //  MENÚ PRINCIPAL
+    // ============================
+
+    void CrearContenidoMenuPrincipal()
     {
-        GameObject panel = CreatePanel("MainPanel", pauseCanvas.transform);
-        
-        // Contenedor principal
-        GameObject container = CreateVerticalContainer("MainContainer", panel.transform);
-        RectTransform containerRect = container.GetComponent<RectTransform>();
-        containerRect.sizeDelta = new Vector2(400, 500);
-        
-        // Título espectacular
-        CreateTitle("⏸️ JUEGO PAUSADO", container.transform, 48, titleColor);
-        CreateSpacer(container.transform, 30);
-        
-        // Línea separadora
-        CreateSeparator(container.transform);
-        CreateSpacer(container.transform, 20);
-        
-        // Botones principales con diseño increíble
-        resumeButton = CreateAwesomeButton("ResumeButton", container.transform, "▶️ REANUDAR", 60);
-        settingsButton = CreateAwesomeButton("SettingsButton", container.transform, "⚙️ CONFIGURACIÓN", 55);
-        restartButton = CreateAwesomeButton("RestartButton", container.transform, "🔄 REINICIAR", 50);
-        mainMenuButton = CreateAwesomeButton("MainMenuButton", container.transform, "🏠 MENÚ PRINCIPAL", 45);
-        quitButton = CreateAwesomeButton("QuitButton", container.transform, "❌ SALIR", 40);
-        
-        // Espaciado final
-        CreateSpacer(container.transform, 20);
-        
-        // Texto inferior
-        CreateText("FooterText", container.transform, "Presiona ESC para reanudar", 16, new Color(0.6f, 0.6f, 0.6f, 1f));
-        
-        SetupMainButtonEvents();
-        
-        return panel;
-    }
-    
-    GameObject CreateSettingsPanel()
-    {
-        GameObject panel = CreatePanel("SettingsPanel", pauseCanvas.transform);
-        
-        GameObject container = CreateVerticalContainer("SettingsContainer", panel.transform);
-        RectTransform containerRect = container.GetComponent<RectTransform>();
-        containerRect.sizeDelta = new Vector2(450, 400);
-        
-        // Título
-        CreateTitle("⚙️ CONFIGURACIÓN", container.transform, 36, titleColor);
-        CreateSpacer(container.transform, 25);
-        
-        // Volumen
-        CreateText("VolumeLabel", container.transform, "🔊 Volumen General", 18, textColor);
-        volumeSlider = CreateSlider("VolumeSlider", container.transform, 0f, 1f, AudioListener.volume);
-        CreateSpacer(container.transform, 20);
-        
-        // Sensibilidad
-        CreateText("SensitivityLabel", container.transform, "🎯 Sensibilidad del Ratón", 18, textColor);
-        float currentSens = PlayerPrefs.GetFloat("MouseSensitivity", 2f);
-        sensitivitySlider = CreateSlider("SensitivitySlider", container.transform, 0.5f, 10f, currentSens);
-        CreateSpacer(container.transform, 20);
-        
-        // Pantalla completa
-        fullscreenToggle = CreateToggle("FullscreenToggle", container.transform, "🖥️ Pantalla Completa", Screen.fullScreen);
-        CreateSpacer(container.transform, 25);
-        
-        // Botón volver
-        backButton = CreateAwesomeButton("BackButton", container.transform, "⬅️ VOLVER", 50);
-        
-        SetupSettingsEvents();
-        
-        return panel;
-    }
-    
-    GameObject CreateConfirmPanel()
-    {
-        GameObject panel = CreatePanel("ConfirmPanel", pauseCanvas.transform);
-        
-        GameObject container = CreateVerticalContainer("ConfirmContainer", panel.transform);
-        RectTransform containerRect = container.GetComponent<RectTransform>();
-        containerRect.sizeDelta = new Vector2(350, 200);
-        
-        // Fondo más oscuro para confirmación
-        Image panelBg = panel.GetComponent<Image>();
-        panelBg.color = new Color(0, 0, 0, 0.95f);
-        
-        // Texto de confirmación
-        confirmText = CreateText("ConfirmText", container.transform, "¿Estás seguro?", 24, textColor);
-        CreateSpacer(container.transform, 30);
-        
-        // Contenedor de botones
-        GameObject buttonContainer = CreateHorizontalContainer("ConfirmButtonContainer", container.transform);
-        
-        confirmYesButton = CreateAwesomeButton("ConfirmYes", buttonContainer.transform, "✅ SÍ", 45);
-        confirmNoButton = CreateAwesomeButton("ConfirmNo", buttonContainer.transform, "❌ NO", 45);
-        
-        return panel;
-    }
-    
-    GameObject CreatePanel(string name, Transform parent)
-    {
-        GameObject panel = new GameObject(name);
-        panel.transform.SetParent(parent, false);
-        
-        RectTransform rect = panel.AddComponent<RectTransform>();
-        rect.anchorMin = Vector2.zero;
-        rect.anchorMax = Vector2.one;
-        rect.offsetMin = Vector2.zero;
-        rect.offsetMax = Vector2.zero;
-        
-        Image image = panel.AddComponent<Image>();
-        image.color = backgroundColor;
-        
-        return panel;
-    }
-    
-    GameObject CreateVerticalContainer(string name, Transform parent)
-    {
-        GameObject container = new GameObject(name);
-        container.transform.SetParent(parent, false);
-        
-        RectTransform rect = container.AddComponent<RectTransform>();
-        rect.anchorMin = new Vector2(0.5f, 0.5f);
-        rect.anchorMax = new Vector2(0.5f, 0.5f);
-        rect.pivot = new Vector2(0.5f, 0.5f);
-        rect.anchoredPosition = Vector2.zero;
-        
-        VerticalLayoutGroup vlg = container.AddComponent<VerticalLayoutGroup>();
-        vlg.spacing = 15;
-        vlg.padding = new RectOffset(30, 30, 30, 30);
+        // Layout vertical
+        VerticalLayoutGroup vlg = panelMenu.AddComponent<VerticalLayoutGroup>();
+        vlg.padding = new RectOffset(40, 40, 35, 35);
+        vlg.spacing = 12;
         vlg.childAlignment = TextAnchor.MiddleCenter;
         vlg.childControlWidth = true;
         vlg.childControlHeight = false;
         vlg.childForceExpandWidth = true;
         vlg.childForceExpandHeight = false;
-        
-        ContentSizeFitter fitter = container.AddComponent<ContentSizeFitter>();
-        fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-        
-        return container;
+
+        // ── TÍTULO ──
+        CrearTexto(panelMenu.transform, "PAUSA", 42, FontStyle.Bold, accentColor, 55);
+
+        // Línea decorativa
+        CrearLinea(panelMenu.transform, accentColor, 2f);
+
+        CrearEspaciador(panelMenu.transform, 10);
+
+        // ── BOTÓN REANUDAR ──
+        CrearBoton(panelMenu.transform, "▶  REANUDAR", 58, () => {
+            Reanudar();
+        });
+
+        CrearEspaciador(panelMenu.transform, 4);
+
+        // ── BOTÓN OPCIONES (Luz / Sonido) ──
+        CrearBoton(panelMenu.transform, "⚙  OPCIONES", 55, () => {
+            panelMenu.SetActive(false);
+            panelOpciones.SetActive(true);
+            StartCoroutine(AnimarEntradaPanel(panelOpciones));
+        });
+
+        CrearEspaciador(panelMenu.transform, 4);
+
+        // ── BOTÓN REINICIAR ──
+        CrearBoton(panelMenu.transform, "↻  REINICIAR", 52, () => {
+            Time.timeScale = 1f;
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        });
+
+        CrearEspaciador(panelMenu.transform, 4);
+
+        // ── BOTÓN SALIR AL MENÚ ──
+        CrearBoton(panelMenu.transform, "✕  SALIR AL MENÚ", 52, () => {
+            Time.timeScale = 1f;
+            SceneManager.LoadScene(mainMenuSceneName);
+        });
+
+        CrearEspaciador(panelMenu.transform, 15);
+
+        // Línea decorativa inferior
+        CrearLinea(panelMenu.transform, new Color(1f, 1f, 1f, 0.15f), 1f);
+
+        // Texto inferior
+        CrearTexto(panelMenu.transform, "Pulsa ESC para reanudar", 15, FontStyle.Italic, new Color(0.6f, 0.6f, 0.6f, 0.8f), 22);
     }
-    
-    GameObject CreateHorizontalContainer(string name, Transform parent)
+
+    // ============================
+    //  PANEL DE OPCIONES
+    // ============================
+
+    void CrearContenidoOpciones()
     {
-        GameObject container = new GameObject(name);
-        container.transform.SetParent(parent, false);
-        
-        RectTransform rect = container.AddComponent<RectTransform>();
-        
-        HorizontalLayoutGroup hlg = container.AddComponent<HorizontalLayoutGroup>();
-        hlg.spacing = 20;
-        hlg.padding = new RectOffset(20, 20, 0, 0);
-        hlg.childAlignment = TextAnchor.MiddleCenter;
-        hlg.childControlWidth = false;
-        hlg.childControlHeight = false;
-        hlg.childForceExpandWidth = false;
-        hlg.childForceExpandHeight = false;
-        
-        return container;
+        VerticalLayoutGroup vlg = panelOpciones.AddComponent<VerticalLayoutGroup>();
+        vlg.padding = new RectOffset(40, 40, 30, 30);
+        vlg.spacing = 10;
+        vlg.childAlignment = TextAnchor.MiddleCenter;
+        vlg.childControlWidth = true;
+        vlg.childControlHeight = false;
+        vlg.childForceExpandWidth = true;
+        vlg.childForceExpandHeight = false;
+
+        // ── TÍTULO ──
+        CrearTexto(panelOpciones.transform, "OPCIONES", 36, FontStyle.Bold, accentColor, 48);
+        CrearLinea(panelOpciones.transform, accentColor, 2f);
+        CrearEspaciador(panelOpciones.transform, 12);
+
+        // ── VOLUMEN ──
+        CrearTexto(panelOpciones.transform, "♫  VOLUMEN", 20, FontStyle.Bold, textoColor, 28);
+
+        // Contenedor del slider de volumen + valor
+        GameObject volContainer = new GameObject("VolumenContainer");
+        volContainer.transform.SetParent(panelOpciones.transform, false);
+        RectTransform volRT = volContainer.AddComponent<RectTransform>();
+        volRT.sizeDelta = new Vector2(0, 35);
+        LayoutElement volLE = volContainer.AddComponent<LayoutElement>();
+        volLE.preferredHeight = 35;
+
+        HorizontalLayoutGroup volHLG = volContainer.AddComponent<HorizontalLayoutGroup>();
+        volHLG.spacing = 15;
+        volHLG.childAlignment = TextAnchor.MiddleCenter;
+        volHLG.childControlWidth = true;
+        volHLG.childControlHeight = true;
+        volHLG.childForceExpandWidth = true;
+        volHLG.childForceExpandHeight = true;
+
+        float volActual = PlayerPrefs.GetFloat("Volume", 1f);
+        sliderVolumen = CrearSliderEnContainer(volContainer.transform, 0f, 1f, volActual);
+        textoVolumenValor = CrearTextoEnContainer(volContainer.transform, Mathf.RoundToInt(volActual * 100) + "%", 50);
+
+        sliderVolumen.onValueChanged.AddListener((valor) => {
+            AudioListener.volume = valor;
+            PlayerPrefs.SetFloat("Volume", valor);
+            PlayerPrefs.Save();
+            if (textoVolumenValor != null)
+                textoVolumenValor.text = Mathf.RoundToInt(valor * 100) + "%";
+        });
+
+        CrearEspaciador(panelOpciones.transform, 15);
+
+        // ── BRILLO ──
+        CrearTexto(panelOpciones.transform, "☀  BRILLO", 20, FontStyle.Bold, textoColor, 28);
+
+        // Contenedor del slider de brillo + valor
+        GameObject briContainer = new GameObject("BrilloContainer");
+        briContainer.transform.SetParent(panelOpciones.transform, false);
+        RectTransform briRT = briContainer.AddComponent<RectTransform>();
+        briRT.sizeDelta = new Vector2(0, 35);
+        LayoutElement briLE = briContainer.AddComponent<LayoutElement>();
+        briLE.preferredHeight = 35;
+
+        HorizontalLayoutGroup briHLG = briContainer.AddComponent<HorizontalLayoutGroup>();
+        briHLG.spacing = 15;
+        briHLG.childAlignment = TextAnchor.MiddleCenter;
+        briHLG.childControlWidth = true;
+        briHLG.childControlHeight = true;
+        briHLG.childForceExpandWidth = true;
+        briHLG.childForceExpandHeight = true;
+
+        float briActual = PlayerPrefs.GetFloat("Brightness", 1f);
+        sliderBrillo = CrearSliderEnContainer(briContainer.transform, 0.1f, 1f, briActual);
+        textoBrilloValor = CrearTextoEnContainer(briContainer.transform, Mathf.RoundToInt(briActual * 100) + "%", 50);
+
+        sliderBrillo.onValueChanged.AddListener((valor) => {
+            if (BrightnessController.Instance != null)
+                BrightnessController.Instance.SetBrightness(valor);
+            PlayerPrefs.SetFloat("Brightness", valor);
+            PlayerPrefs.Save();
+            if (textoBrilloValor != null)
+                textoBrilloValor.text = Mathf.RoundToInt(valor * 100) + "%";
+        });
+
+        CrearEspaciador(panelOpciones.transform, 20);
+
+        // ── BOTÓN VOLVER ──
+        CrearBoton(panelOpciones.transform, "←  VOLVER", 52, () => {
+            panelOpciones.SetActive(false);
+            panelMenu.SetActive(true);
+            StartCoroutine(AnimarEntradaPanel(panelMenu));
+        });
     }
-    
-    void CreateTitle(string text, Transform parent, int fontSize, Color color)
+
+    // ============================
+    //  ANIMACIÓN GENÉRICA DE PANEL
+    // ============================
+
+    IEnumerator AnimarEntradaPanel(GameObject panel)
     {
-        GameObject titleObj = new GameObject(text);
-        titleObj.transform.SetParent(parent, false);
-        
-        TextMeshProUGUI titleText = titleObj.AddComponent<TextMeshProUGUI>();
-        titleText.text = text;
-        titleText.fontSize = fontSize;
-        titleText.fontStyle = FontStyles.Bold;
-        titleText.color = color;
-        titleText.alignment = TextAlignmentOptions.Center;
-        
-        // Efecto de sombra
-        titleText.enableAutoSizing = false;
-        
-        RectTransform rect = titleObj.GetComponent<RectTransform>();
-        rect.sizeDelta = new Vector2(0, fontSize + 20);
-        
-        return titleObj;
+        if (panel == null) yield break;
+
+        CanvasGroup cg = panel.GetComponent<CanvasGroup>();
+        if (cg == null) cg = panel.AddComponent<CanvasGroup>();
+
+        RectTransform rt = panel.GetComponent<RectTransform>();
+        cg.alpha = 0f;
+        rt.localScale = Vector3.one * 0.9f;
+
+        float duracion = 0.15f;
+        float tiempo = 0f;
+
+        while (tiempo < duracion)
+        {
+            tiempo += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(tiempo / duracion);
+            float ease = 1f - Mathf.Pow(1f - t, 3f);
+
+            cg.alpha = ease;
+            rt.localScale = Vector3.Lerp(Vector3.one * 0.9f, Vector3.one, ease);
+            yield return null;
+        }
+
+        cg.alpha = 1f;
+        rt.localScale = Vector3.one;
     }
-    
-    TextMeshProUGUI CreateText(string name, Transform parent, string content, int fontSize, Color color)
+
+    // ============================
+    //  MÉTODOS AUXILIARES DE UI
+    // ============================
+
+    GameObject CrearPanelFullscreen(string nombre, Transform padre, Color color)
     {
-        GameObject textObj = new GameObject(name);
-        textObj.transform.SetParent(parent, false);
-        
-        TextMeshProUGUI text = textObj.AddComponent<TextMeshProUGUI>();
-        text.text = content;
-        text.fontSize = fontSize;
-        text.color = color;
-        text.alignment = TextAlignmentOptions.Center;
-        
-        RectTransform rect = textObj.GetComponent<RectTransform>();
-        rect.sizeDelta = new Vector2(0, fontSize + 10);
-        
-        return text;
+        GameObject panel = new GameObject(nombre);
+        panel.transform.SetParent(padre, false);
+
+        RectTransform rt = panel.AddComponent<RectTransform>();
+        rt.anchorMin = Vector2.zero;
+        rt.anchorMax = Vector2.one;
+        rt.offsetMin = Vector2.zero;
+        rt.offsetMax = Vector2.zero;
+
+        Image img = panel.AddComponent<Image>();
+        img.color = color;
+        img.raycastTarget = true;
+
+        return panel;
     }
-    
-    Button CreateAwesomeButton(string name, Transform parent, string text, int height)
+
+    GameObject CrearPanelCentral(string nombre, Transform padre, float ancho, float alto)
     {
-        GameObject buttonObj = new GameObject(name);
-        buttonObj.transform.SetParent(parent, false);
-        
-        RectTransform rect = buttonObj.AddComponent<RectTransform>();
-        rect.sizeDelta = new Vector2(0, height);
-        
-        // Imagen de fondo con bordes redondeados
-        Image image = buttonObj.AddComponent<Image>();
-        image.color = buttonColor;
-        
-        Button button = buttonObj.AddComponent<Button>();
-        
-        // Configurar colores espectaculares
-        ColorBlock colors = button.colors;
-        colors.normalColor = buttonColor;
-        colors.highlightedColor = buttonHoverColor;
-        colors.pressedColor = new Color(buttonHoverColor.r * 0.8f, buttonHoverColor.g * 0.8f, buttonHoverColor.b * 0.8f, 1f);
-        colors.selectedColor = buttonHoverColor;
-        colors.fadeDuration = 0.1f;
-        button.colors = colors;
-        
+        GameObject panel = new GameObject(nombre);
+        panel.transform.SetParent(padre, false);
+
+        RectTransform rt = panel.AddComponent<RectTransform>();
+        rt.anchorMin = new Vector2(0.5f, 0.5f);
+        rt.anchorMax = new Vector2(0.5f, 0.5f);
+        rt.pivot = new Vector2(0.5f, 0.5f);
+        rt.sizeDelta = new Vector2(ancho, alto);
+
+        Image img = panel.AddComponent<Image>();
+        img.color = new Color(0.08f, 0.08f, 0.1f, 0.97f);
+
+        // Borde sutil con Outline
+        Outline outline = panel.AddComponent<Outline>();
+        outline.effectColor = new Color(accentColor.r, accentColor.g, accentColor.b, 0.4f);
+        outline.effectDistance = new Vector2(2, -2);
+
+        return panel;
+    }
+
+    Text CrearTexto(Transform padre, string contenido, int tamano, FontStyle estilo, Color color, float altura)
+    {
+        GameObject obj = new GameObject("Txt_" + contenido);
+        obj.transform.SetParent(padre, false);
+
+        RectTransform rt = obj.AddComponent<RectTransform>();
+        rt.sizeDelta = new Vector2(0, altura);
+
+        LayoutElement le = obj.AddComponent<LayoutElement>();
+        le.preferredHeight = altura;
+
+        Text txt = obj.AddComponent<Text>();
+        txt.text = contenido;
+        txt.font = fuente;
+        txt.fontSize = tamano;
+        txt.fontStyle = estilo;
+        txt.color = color;
+        txt.alignment = TextAnchor.MiddleCenter;
+        txt.horizontalOverflow = HorizontalWrapMode.Overflow;
+        txt.verticalOverflow = VerticalWrapMode.Overflow;
+        txt.raycastTarget = false;
+
+        return txt;
+    }
+
+    Button CrearBoton(Transform padre, string texto, float altura, UnityEngine.Events.UnityAction accion)
+    {
+        GameObject btnObj = new GameObject("Btn_" + texto);
+        btnObj.transform.SetParent(padre, false);
+
+        RectTransform rt = btnObj.AddComponent<RectTransform>();
+        rt.sizeDelta = new Vector2(0, altura);
+
+        LayoutElement le = btnObj.AddComponent<LayoutElement>();
+        le.preferredHeight = altura;
+
+        Image img = btnObj.AddComponent<Image>();
+        img.color = botonColor;
+
+        Button btn = btnObj.AddComponent<Button>();
+        btn.targetGraphic = img;
+
+        ColorBlock colores = btn.colors;
+        colores.normalColor = botonColor;
+        colores.highlightedColor = botonHoverColor;
+        colores.pressedColor = new Color(botonHoverColor.r * 0.7f, botonHoverColor.g * 0.7f, botonHoverColor.b * 0.7f, 1f);
+        colores.selectedColor = botonColor;
+        colores.fadeDuration = 0.1f;
+        btn.colors = colores;
+
+        btn.onClick.AddListener(accion);
+
         // Texto del botón
-        GameObject textObj = new GameObject("Text");
-        textObj.transform.SetParent(buttonObj.transform, false);
-        
-        TextMeshProUGUI buttonText = textObj.AddComponent<TextMeshProUGUI>();
-        buttonText.text = text;
-        buttonText.fontSize = (int)(height * 0.35f);
-        buttonText.fontStyle = FontStyles.Bold;
-        buttonText.color = textColor;
-        buttonText.alignment = TextAlignmentOptions.Center;
-        
-        RectTransform textRect = textObj.GetComponent<RectTransform>();
-        textRect.anchorMin = Vector2.zero;
-        textRect.anchorMax = Vector2.one;
-        textRect.offsetMin = new Vector2(15, 5);
-        textRect.offsetMax = new Vector2(-15, -5);
-        
-        // Layout element
-        LayoutElement layout = buttonObj.AddComponent<LayoutElement>();
-        layout.preferredHeight = height;
-        
-        // Guardar escala original para animaciones
-        originalButtonScale = Vector3.one;
-        
-        return button;
+        GameObject txtObj = new GameObject("Texto");
+        txtObj.transform.SetParent(btnObj.transform, false);
+
+        RectTransform txtRT = txtObj.AddComponent<RectTransform>();
+        txtRT.anchorMin = Vector2.zero;
+        txtRT.anchorMax = Vector2.one;
+        txtRT.offsetMin = new Vector2(20, 5);
+        txtRT.offsetMax = new Vector2(-20, -5);
+
+        Text txt = txtObj.AddComponent<Text>();
+        txt.text = texto;
+        txt.font = fuente;
+        txt.fontSize = (int)(altura * 0.38f);
+        txt.fontStyle = FontStyle.Bold;
+        txt.color = textoColor;
+        txt.alignment = TextAnchor.MiddleCenter;
+        txt.raycastTarget = false;
+
+        // Sombra del texto
+        Shadow shadow = txtObj.AddComponent<Shadow>();
+        shadow.effectColor = new Color(0, 0, 0, 0.6f);
+        shadow.effectDistance = new Vector2(1, -1);
+
+        return btn;
     }
-    
-    Slider CreateSlider(string name, Transform parent, float minValue, float maxValue, float defaultValue)
+
+    void CrearLinea(Transform padre, Color color, float grosor)
     {
-        GameObject sliderObj = new GameObject(name);
-        sliderObj.transform.SetParent(parent, false);
-        
-        RectTransform rect = sliderObj.AddComponent<RectTransform>();
-        rect.sizeDelta = new Vector2(0, 25);
-        
-        LayoutElement layout = sliderObj.AddComponent<LayoutElement>();
-        layout.preferredHeight = 25;
-        
+        GameObject lineObj = new GameObject("Linea");
+        lineObj.transform.SetParent(padre, false);
+
+        RectTransform rt = lineObj.AddComponent<RectTransform>();
+        rt.sizeDelta = new Vector2(0, grosor);
+
+        LayoutElement le = lineObj.AddComponent<LayoutElement>();
+        le.preferredHeight = grosor;
+
+        Image img = lineObj.AddComponent<Image>();
+        img.color = color;
+        img.raycastTarget = false;
+    }
+
+    void CrearEspaciador(Transform padre, float altura)
+    {
+        GameObject espObj = new GameObject("Espaciador");
+        espObj.transform.SetParent(padre, false);
+
+        RectTransform rt = espObj.AddComponent<RectTransform>();
+        rt.sizeDelta = new Vector2(0, altura);
+
+        LayoutElement le = espObj.AddComponent<LayoutElement>();
+        le.preferredHeight = altura;
+    }
+
+    Slider CrearSliderEnContainer(Transform padre, float min, float max, float valorInicial)
+    {
+        GameObject sliderObj = new GameObject("Slider");
+        sliderObj.transform.SetParent(padre, false);
+
+        RectTransform sliderRT = sliderObj.AddComponent<RectTransform>();
+        sliderRT.sizeDelta = new Vector2(0, 28);
+
+        LayoutElement sliderLE = sliderObj.AddComponent<LayoutElement>();
+        sliderLE.flexibleWidth = 1f;
+
         Slider slider = sliderObj.AddComponent<Slider>();
-        slider.minValue = minValue;
-        slider.maxValue = maxValue;
-        slider.value = defaultValue;
+        slider.minValue = min;
+        slider.maxValue = max;
         slider.wholeNumbers = false;
-        
-        // Crear visual del slider
-        CreateSliderVisuals(slider);
-        
-        return slider;
-    }
-    
-    void CreateSliderVisuals(Slider slider)
-    {
+
         // Background
         GameObject bgObj = new GameObject("Background");
-        bgObj.transform.SetParent(slider.transform, false);
-        RectTransform bgRect = bgObj.AddComponent<RectTransform>();
-        bgRect.anchorMin = new Vector2(0, 0.4f);
-        bgRect.anchorMax = new Vector2(1, 0.6f);
-        bgRect.offsetMin = Vector2.zero;
-        bgRect.offsetMax = Vector2.zero;
+        bgObj.transform.SetParent(sliderObj.transform, false);
+        RectTransform bgRT = bgObj.AddComponent<RectTransform>();
+        bgRT.anchorMin = new Vector2(0, 0.35f);
+        bgRT.anchorMax = new Vector2(1, 0.65f);
+        bgRT.offsetMin = Vector2.zero;
+        bgRT.offsetMax = Vector2.zero;
         Image bgImg = bgObj.AddComponent<Image>();
-        bgImg.color = new Color(0.3f, 0.3f, 0.3f, 1f);
-        
+        bgImg.color = new Color(0.2f, 0.2f, 0.25f, 1f);
+
         // Fill Area
-        GameObject fillArea = new GameObject("Fill Area");
-        fillArea.transform.SetParent(slider.transform, false);
-        RectTransform fillAreaRect = fillArea.AddComponent<RectTransform>();
-        fillAreaRect.anchorMin = new Vector2(0, 0.4f);
-        fillAreaRect.anchorMax = new Vector2(1, 0.6f);
-        fillAreaRect.offsetMin = Vector2.zero;
-        fillAreaRect.offsetMax = Vector2.zero;
-        
+        GameObject fillArea = new GameObject("FillArea");
+        fillArea.transform.SetParent(sliderObj.transform, false);
+        RectTransform fillAreaRT = fillArea.AddComponent<RectTransform>();
+        fillAreaRT.anchorMin = new Vector2(0, 0.35f);
+        fillAreaRT.anchorMax = new Vector2(1, 0.65f);
+        fillAreaRT.offsetMin = Vector2.zero;
+        fillAreaRT.offsetMax = Vector2.zero;
+
         // Fill
         GameObject fill = new GameObject("Fill");
         fill.transform.SetParent(fillArea.transform, false);
-        RectTransform fillRect = fill.AddComponent<RectTransform>();
-        fillRect.anchorMin = Vector2.zero;
-        fillRect.anchorMax = Vector2.one;
-        fillRect.offsetMin = Vector2.zero;
-        fillRect.offsetMax = Vector2.zero;
+        RectTransform fillRT = fill.AddComponent<RectTransform>();
+        fillRT.anchorMin = Vector2.zero;
+        fillRT.anchorMax = Vector2.one;
+        fillRT.offsetMin = Vector2.zero;
+        fillRT.offsetMax = Vector2.zero;
         Image fillImg = fill.AddComponent<Image>();
-        fillImg.color = buttonHoverColor;
-        
+        fillImg.color = accentColor;
+
+        // Handle Slide Area
+        GameObject handleArea = new GameObject("HandleSlideArea");
+        handleArea.transform.SetParent(sliderObj.transform, false);
+        RectTransform handleAreaRT = handleArea.AddComponent<RectTransform>();
+        handleAreaRT.anchorMin = Vector2.zero;
+        handleAreaRT.anchorMax = Vector2.one;
+        handleAreaRT.offsetMin = new Vector2(10, 0);
+        handleAreaRT.offsetMax = new Vector2(-10, 0);
+
         // Handle
         GameObject handle = new GameObject("Handle");
-        handle.transform.SetParent(slider.transform, false);
-        RectTransform handleRect = handle.AddComponent<RectTransform>();
-        handleRect.sizeDelta = new Vector2(25, 25);
+        handle.transform.SetParent(handleArea.transform, false);
+        RectTransform handleRT = handle.AddComponent<RectTransform>();
+        handleRT.sizeDelta = new Vector2(22, 0);
         Image handleImg = handle.AddComponent<Image>();
         handleImg.color = Color.white;
-        
+
         // Asignar referencias
-        slider.fillRect = fillRect;
-        slider.handleRect = handleRect;
+        slider.fillRect = fillRT;
+        slider.handleRect = handleRT;
         slider.targetGraphic = handleImg;
+
+        // Valor inicial
+        slider.value = valorInicial;
+
+        return slider;
     }
-    
-    Toggle CreateToggle(string name, Transform parent, string label, bool defaultValue)
+
+    Text CrearTextoEnContainer(Transform padre, string contenido, float anchoFijo)
     {
-        GameObject toggleObj = new GameObject(name);
-        toggleObj.transform.SetParent(parent, false);
-        
-        RectTransform rect = toggleObj.AddComponent<RectTransform>();
-        rect.sizeDelta = new Vector2(0, 30);
-        
-        LayoutElement layout = toggleObj.AddComponent<LayoutElement>();
-        layout.preferredHeight = 30;
-        
-        Toggle toggle = toggleObj.AddComponent<Toggle>();
-        toggle.isOn = defaultValue;
-        
-        // Background
-        GameObject bgObj = new GameObject("Background");
-        bgObj.transform.SetParent(toggleObj.transform, false);
-        RectTransform bgRect = bgObj.AddComponent<RectTransform>();
-        bgRect.sizeDelta = new Vector2(30, 30);
-        Image bgImg = bgObj.AddComponent<Image>();
-        bgImg.color = buttonColor;
-        
-        // Checkmark
-        GameObject checkObj = new GameObject("Checkmark");
-        checkObj.transform.SetParent(bgObj.transform, false);
-        RectTransform checkRect = checkObj.AddComponent<RectTransform>();
-        checkRect.anchorMin = Vector2.zero;
-        checkRect.anchorMax = Vector2.one;
-        checkRect.offsetMin = new Vector2(5, 5);
-        checkRect.offsetMax = new Vector2(-5, -5);
-        Image checkImg = checkObj.AddComponent<Image>();
-        checkImg.color = buttonHoverColor;
-        
-        // Label
-        GameObject labelObj = new GameObject("Label");
-        labelObj.transform.SetParent(toggleObj.transform, false);
-        TextMeshProUGUI labelText = labelObj.AddComponent<TextMeshProUGUI>();
-        labelText.text = label;
-        labelText.fontSize = 18;
-        labelText.color = textColor;
-        labelText.alignment = TextAlignmentOptions.Left;
-        
-        RectTransform labelRect = labelObj.GetComponent<RectTransform>();
-        labelRect.anchorMin = Vector2.zero;
-        labelRect.anchorMax = Vector2.one;
-        labelRect.offsetMin = new Vector2(40, 0);
-        labelRect.offsetMax = Vector2.zero;
-        
-        // Configurar toggle
-        toggle.targetGraphic = bgImg;
-        toggle.graphic = bgImg;
-        
-        return toggle;
+        GameObject txtObj = new GameObject("ValorTexto");
+        txtObj.transform.SetParent(padre, false);
+
+        RectTransform rt = txtObj.AddComponent<RectTransform>();
+
+        LayoutElement le = txtObj.AddComponent<LayoutElement>();
+        le.preferredWidth = anchoFijo;
+        le.flexibleWidth = 0;
+
+        Text txt = txtObj.AddComponent<Text>();
+        txt.text = contenido;
+        txt.font = fuente;
+        txt.fontSize = 18;
+        txt.fontStyle = FontStyle.Bold;
+        txt.color = textoColor;
+        txt.alignment = TextAnchor.MiddleCenter;
+        txt.raycastTarget = false;
+
+        return txt;
     }
-    
-    void CreateSeparator(Transform parent)
-    {
-        GameObject separator = new GameObject("Separator");
-        separator.transform.SetParent(parent, false);
-        
-        RectTransform rect = separator.AddComponent<RectTransform>();
-        rect.sizeDelta = new Vector2(300, 2);
-        
-        Image image = separator.AddComponent<Image>();
-        image.color = new Color(0.5f, 0.5f, 0.5f, 0.5f);
-        
-        LayoutElement layout = separator.AddComponent<LayoutElement>();
-        layout.preferredHeight = 2;
-    }
-    
-    void CreateSpacer(Transform parent, float height)
-    {
-        GameObject spacer = new GameObject("Spacer");
-        spacer.transform.SetParent(parent, false);
-        
-        RectTransform rect = spacer.AddComponent<RectTransform>();
-        rect.sizeDelta = new Vector2(0, height);
-        
-        LayoutElement layout = spacer.AddComponent<LayoutElement>();
-        layout.preferredHeight = height;
-    }
-    
-    void SetupMainButtonEvents()
-    {
-        if (resumeButton != null)
-            resumeButton.onClick.AddListener(() => { PlayClickSound(); ResumeGame(); });
-            
-        if (settingsButton != null)
-            settingsButton.onClick.AddListener(() => { PlayClickSound(); ShowSettings(); });
-            
-        if (restartButton != null)
-            restartButton.onClick.AddListener(() => { PlayClickSound(); ShowConfirmation("reiniciar el nivel", RestartLevel); });
-            
-        if (mainMenuButton != null)
-            mainMenuButton.onClick.AddListener(() => { PlayClickSound(); ShowConfirmation("ir al menú principal", GoToMainMenu); });
-            
-        if (quitButton != null)
-            quitButton.onClick.AddListener(() => { PlayClickSound(); ShowConfirmation("salir del juego", QuitGame); });
-    }
-    
-    void SetupSettingsEvents()
-    {
-        if (backButton != null)
-            backButton.onClick.AddListener(() => { PlayClickSound(); ShowMainPanel(); });
-            
-        if (volumeSlider != null)
-            volumeSlider.onValueChanged.AddListener(OnVolumeChanged);
-            
-        if (sensitivitySlider != null)
-            sensitivitySlider.onValueChanged.AddListener(OnSensitivityChanged);
-            
-        if (fullscreenToggle != null)
-            fullscreenToggle.onValueChanged.AddListener(OnFullscreenChanged);
-            
-        if (confirmYesButton != null)
-            confirmYesButton.onClick.AddListener(() => { PlayClickSound(); ExecutePendingAction(); });
-            
-        if (confirmNoButton != null)
-            confirmNoButton.onClick.AddListener(() => { PlayClickSound(); HideConfirmation(); });
-    }
-    
-    void TogglePause()
-    {
-        if (isPaused)
-            ResumeGame();
-        else
-            PauseGame();
-    }
-    
-    public void PauseGame()
-    {
-        if (!isPaused)
-        {
-            isPaused = true;
-            Time.timeScale = 0f;
-            
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible = true;
-            
-            ShowMainPanel();
-            
-            if (enableAnimations)
-                AnimatePanelEntry(mainPanel);
-                
-            Debug.Log("⏸️ Juego pausado - Menú profesional activado");
-        }
-    }
-    
-    public void ResumeGame()
-    {
-        if (isPaused)
-        {
-            isPaused = false;
-            Time.timeScale = 1f;
-            
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = false;
-            
-            if (enableAnimations)
-                AnimatePanelExit(mainPanel, () => HideAllPanels());
-            else
-                HideAllPanels();
-                
-            Debug.Log("▶️ Juego reanudado");
-        }
-    }
-    
-    void ShowMainPanel()
-    {
-        HideAllPanels();
-        mainPanel.SetActive(true);
-    }
-    
-    void ShowSettings()
-    {
-        HideAllPanels();
-        settingsPanel.SetActive(true);
-        
-        if (enableAnimations)
-            AnimatePanelEntry(settingsPanel);
-    }
-    
-    void ShowConfirmation(string action, System.Action callback)
-    {
-        pendingAction = action;
-        
-        HideAllPanels();
-        confirmPanel.SetActive(true);
-        
-        if (confirmText != null)
-            confirmText.text = $"¿Estás seguro de que quieres {action}?";
-            
-        if (enableAnimations)
-            AnimatePanelEntry(confirmPanel);
-            
-        // Configurar botón de confirmación
-        if (confirmYesButton != null)
-        {
-            confirmYesButton.onClick.RemoveAllListeners();
-            confirmYesButton.onClick.AddListener(() => { PlayClickSound(); callback?.Invoke(); });
-        }
-    }
-    
-    void HideConfirmation()
-    {
-        if (enableAnimations)
-            AnimatePanelExit(confirmPanel, () => {
-                confirmPanel.SetActive(false);
-                ShowMainPanel();
-            });
-        else
-        {
-            confirmPanel.SetActive(false);
-            ShowMainPanel();
-        }
-    }
-    
-    void HideAllPanels()
-    {
-        mainPanel.SetActive(false);
-        settingsPanel.SetActive(false);
-        confirmPanel.SetActive(false);
-    }
-    
-    void AnimatePanelEntry(GameObject panel)
-    {
-        if (panel == null) return;
-        
-        RectTransform rect = panel.GetComponent<RectTransform>();
-        CanvasGroup canvasGroup = panel.GetComponent<CanvasGroup>();
-        
-        if (canvasGroup == null)
-            canvasGroup = panel.AddComponent<CanvasGroup>();
-            
-        rect.localScale = Vector3.zero;
-        canvasGroup.alpha = 0f;
-        
-        LeanTween.scale(rect, Vector3.one, animationSpeed).setEaseOutBack();
-        LeanTween.alpha(canvasGroup, 1f, animationSpeed).setEaseOutQuad();
-    }
-    
-    void AnimatePanelExit(GameObject panel, System.Action onComplete)
-    {
-        if (panel == null) return;
-        
-        RectTransform rect = panel.GetComponent<RectTransform>();
-        CanvasGroup canvasGroup = panel.GetComponent<CanvasGroup>();
-        
-        if (canvasGroup == null)
-            canvasGroup = panel.AddComponent<CanvasGroup>();
-            
-        LeanTween.scale(rect, Vector3.zero, animationSpeed).setEaseInBack();
-        LeanTween.alpha(canvasGroup, 0f, animationSpeed).setEaseInQuad().setOnComplete(onComplete);
-    }
-    
-    void OnVolumeChanged(float value)
-    {
-        AudioListener.volume = value;
-        PlayerPrefs.SetFloat("Volume", value);
-        PlayerPrefs.Save();
-    }
-    
-    void OnSensitivityChanged(float value)
-    {
-        PlayerPrefs.SetFloat("MouseSensitivity", value);
-        PlayerPrefs.Save();
-        
-        // Aplicar a MouseLookScript si existe
-        MouseLookScript mls = FindObjectOfType<MouseLookScript>();
-        if (mls != null)
-        {
-            mls.mouseSensitvity_notAiming = value * 150f;
-            mls.mouseSensitvity_aiming = value * 75f;
-        }
-    }
-    
-    void OnFullscreenChanged(bool isFullscreen)
-    {
-        Screen.fullScreen = isFullscreen;
-        PlayerPrefs.SetInt("Fullscreen", isFullscreen ? 1 : 0);
-        PlayerPrefs.Save();
-    }
-    
-    void PlayClickSound()
-    {
-        // Sonido simple de clic
-        AudioSource.PlayClipAtPoint(Resources.Load<AudioClip>("Click"), Camera.main.transform.position, 0.5f);
-    }
-    
-    void RestartLevel()
-    {
-        Time.timeScale = 1f;
-        UnityEngine.SceneManagement.SceneManager.LoadScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex);
-    }
-    
-    void GoToMainMenu()
-    {
-        Time.timeScale = 1f;
-        UnityEngine.SceneManagement.SceneManager.LoadScene("Inicio");
-    }
-    
-    void QuitGame()
-    {
-        #if UNITY_EDITOR
-            UnityEditor.EditorApplication.isPlaying = false;
-        #else
-            Application.Quit();
-        #endif
-    }
-    
-    void ExecutePendingAction()
-    {
-        if (pendingAction.Contains("reiniciar"))
-            RestartLevel();
-        else if (pendingAction.Contains("menú principal"))
-            GoToMainMenu();
-        else if (pendingAction.Contains("salir"))
-            QuitGame();
-            
-        HideConfirmation();
-    }
-    
-    public bool IsPaused()
-    {
-        return isPaused;
-    }
-    
+
     void OnDestroy()
     {
-        // Limpiar listeners
-        if (resumeButton != null) resumeButton.onClick.RemoveAllListeners();
-        if (settingsButton != null) settingsButton.onClick.RemoveAllListeners();
-        if (restartButton != null) restartButton.onClick.RemoveAllListeners();
-        if (mainMenuButton != null) mainMenuButton.onClick.RemoveAllListeners();
-        if (quitButton != null) quitButton.onClick.RemoveAllListeners();
-        if (backButton != null) backButton.onClick.RemoveAllListeners();
-        if (confirmYesButton != null) confirmYesButton.onClick.RemoveAllListeners();
-        if (confirmNoButton != null) confirmNoButton.onClick.RemoveAllListeners();
+        // Restaurar tiempo por si se destruye mientras está en pausa
+        Time.timeScale = 1f;
     }
 }

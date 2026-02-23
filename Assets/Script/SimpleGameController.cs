@@ -8,7 +8,7 @@ public class SimpleGameController : MonoBehaviour
     public static SimpleGameController Instance;
     
     [Header("Referencias a Sistemas")]
-    public SimplePauseMenu pauseMenu;
+    public AutoPauseMenuTool pauseMenu;
     public SimpleGameUI gameUI;
     public SimpleAudioManager audioManager;
     
@@ -46,7 +46,7 @@ public class SimpleGameController : MonoBehaviour
     {
         // Buscar sistemas si no están asignados
         if (pauseMenu == null)
-            pauseMenu = FindObjectOfType<SimplePauseMenu>();
+            pauseMenu = FindObjectOfType<AutoPauseMenuTool>();
             
         if (gameUI == null)
             gameUI = FindObjectOfType<SimpleGameUI>();
