@@ -9,11 +9,12 @@ public class PlayerMovementScript : MonoBehaviour {
 	public bool grounded;
 
 	[Header("Settings")]
-	public float jumpForce = 7f;
-	public float maxSpeed = 5;
+	public float jumpForce = 12f;
+	public float maxSpeed = 18;
 	public float gravity = 20f;
-	public float accelerationSpeed = 50000.0f;
+	public float accelerationSpeed = 50.0f;
     public float deaccelerationSpeed = 15.0f;
+    public float speedMultiplier = 2.0f;
 
 	[Header("References")]
 	[HideInInspector]public Transform cameraMain;
@@ -83,8 +84,8 @@ public class PlayerMovementScript : MonoBehaviour {
 		controller.height = 1.8f;
 		controller.radius = 0.4f;
 		controller.center = new Vector3(0, 0.9f, 0);
-		controller.skinWidth = 0.08f;
-		controller.minMoveDistance = 0f;
+		controller.skinWidth = 0.001f;
+		controller.minMoveDistance = 0.001f;
 		controller.stepOffset = 0.3f;
 
 		// STEP 3: Setup camera and bullet spawn
@@ -129,11 +130,11 @@ public class PlayerMovementScript : MonoBehaviour {
 			if (Input.GetKey(KeyCode.D)) h = 1;
 		}
 
-		// 2. Horizontal movement
+		// 2. Horizontal movement - sistema ultra rápido
 		Vector3 moveDir = (transform.forward * v + transform.right * h);
 		moveDir.y = 0;
 		if (moveDir.magnitude > 1f) moveDir.Normalize();
-		Vector3 horizontalMove = moveDir * maxSpeed;
+		Vector3 horizontalMove = moveDir * maxSpeed * speedMultiplier * 2f; // Multiplicador reducido
 
 		// 3. Ground check - simply use CharacterController.isGrounded
 		grounded = controller.isGrounded;

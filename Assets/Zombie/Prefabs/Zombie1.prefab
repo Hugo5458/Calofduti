@@ -1726,7 +1726,7 @@ GameObject:
   - component: {fileID: 987305501471248160}
   m_Layer: 0
   m_Name: Zombie1
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -1741,7 +1741,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 10, y: 10, z: 10}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 3095270377931777224}
@@ -1771,7 +1771,7 @@ Animator:
   m_GameObject: {fileID: 4493914613880827488}
   m_Enabled: 1
   m_Avatar: {fileID: 9000000, guid: 8f7380da49034cd488ddff94b1ac35d1, type: 3}
-  m_Controller: {fileID: 9100000, guid: 2ef8e6599b7f9934e8ff0d64c5325a1f, type: 2}
+  m_Controller: {fileID: 9100000, guid: 1c0d6b348d7db5b45bd090aded31fba1, type: 2}
   m_CullingMode: 1
   m_UpdateMode: 0
   m_ApplyRootMotion: 1
@@ -1796,10 +1796,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   damage: 10
   attackRate: 1
-  detectionRange: 50
-  attackRange: 2
-  moveSpeed: 3
+  detectionRange: 3000
+  attackRange: 30
+  moveSpeed: 10
   rotationSpeed: 5
+  separationDistance: 1.2
+  separationForce: 2
   player: {fileID: 0}
   attackSounds: []
 --- !u!114 &-5639316477399819704
@@ -1815,7 +1817,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   maxHealth: 100
-  currentHealth: 0
+  currentHealth: 100
   scoreValue: 100
   hurtSound: {fileID: 0}
   deathSound: {fileID: 0}

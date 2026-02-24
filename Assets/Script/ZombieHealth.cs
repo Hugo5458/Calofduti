@@ -77,10 +77,10 @@ public class ZombieHealth : MonoBehaviour
             audioSource.PlayOneShot(deathSound);
         }
         
-        // Animación de muerte
-        if (animator != null)
+        // Animación de muerte (a través de ZombieAI)
+        if (zombieAI != null)
         {
-            animator.SetTrigger("Die");
+            zombieAI.PlayDeathAnimation();
         }
         
         // Desactivar IA
