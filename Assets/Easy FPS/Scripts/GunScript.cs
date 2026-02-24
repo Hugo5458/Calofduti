@@ -134,6 +134,9 @@ public class GunScript : MonoBehaviour {
 	*/
 	void Update(){
 
+		// No ejecutar lógica si faltan referencias críticas
+		if (mls == null || pmS == null || mainCamera == null) return;
+
 		Animations();
 
 		GiveCameraScriptMySensitvity();
@@ -161,6 +164,10 @@ public class GunScript : MonoBehaviour {
 
 		MeeleAnimationsStates ();
 
+		if (cameraComponent == null || mls == null) return;
+
+		float safeAimTime = Mathf.Max(gunAimTime, 0.0001f);
+
 		/*
 		 * Changing some values if we are aiming, like sensitity, zoom racion and position of the waepon.
 		 */
@@ -170,10 +177,10 @@ public class GunScript : MonoBehaviour {
 			recoilAmount_x = recoilAmount_x_;
 			recoilAmount_y = recoilAmount_y_;
 			recoilAmount_z = recoilAmount_z_;
-			currentGunPosition = Vector3.SmoothDamp(currentGunPosition, aimPlacePosition, ref gunPosVelocity, gunAimTime);
-			cameraComponent.fieldOfView = Mathf.SmoothDamp(cameraComponent.fieldOfView, cameraZoomRatio_aiming, ref cameraZoomVelocity, gunAimTime);
+			currentGunPosition = Vector3.SmoothDamp(currentGunPosition, aimPlacePosition, ref gunPosVelocity, safeAimTime);
+			cameraComponent.fieldOfView = Mathf.SmoothDamp(cameraComponent.fieldOfView, cameraZoomRatio_aiming, ref cameraZoomVelocity, safeAimTime);
 			if(secondCamera != null)
-				secondCamera.fieldOfView = Mathf.SmoothDamp(secondCamera.fieldOfView, secondCameraZoomRatio_aiming, ref secondCameraZoomVelocity, gunAimTime);
+				secondCamera.fieldOfView = Mathf.SmoothDamp(secondCamera.fieldOfView, secondCameraZoomRatio_aiming, ref secondCameraZoomVelocity, safeAimTime);
 		}
 		//if not aiming
 		else{
@@ -181,10 +188,10 @@ public class GunScript : MonoBehaviour {
 			recoilAmount_x = recoilAmount_x_non;
 			recoilAmount_y = recoilAmount_y_non;
 			recoilAmount_z = recoilAmount_z_non;
-			currentGunPosition = Vector3.SmoothDamp(currentGunPosition, restPlacePosition, ref gunPosVelocity, gunAimTime);
-			cameraComponent.fieldOfView = Mathf.SmoothDamp(cameraComponent.fieldOfView, cameraZoomRatio_notAiming, ref cameraZoomVelocity, gunAimTime);
+			currentGunPosition = Vector3.SmoothDamp(currentGunPosition, restPlacePosition, ref gunPosVelocity, safeAimTime);
+			cameraComponent.fieldOfView = Mathf.SmoothDamp(cameraComponent.fieldOfView, cameraZoomRatio_notAiming, ref cameraZoomVelocity, safeAimTime);
 			if(secondCamera != null)
-				secondCamera.fieldOfView = Mathf.SmoothDamp(secondCamera.fieldOfView, secondCameraZoomRatio_notAiming, ref secondCameraZoomVelocity, gunAimTime);
+				secondCamera.fieldOfView = Mathf.SmoothDamp(secondCamera.fieldOfView, secondCameraZoomRatio_notAiming, ref secondCameraZoomVelocity, safeAimTime);
 		}
 
 	}
@@ -314,17 +321,36 @@ public class GunScript : MonoBehaviour {
 	void PositionGun(){
 		if (mainCamera == null || pmS == null) return;
 
-		transform.position = Vector3.SmoothDamp(transform.position,
-			mainCamera.transform.position  - 
+		// Calcular posición objetivo del arma
+		Vector3 targetPos = mainCamera.transform.position  - 
 			(mainCamera.transform.right * (currentGunPosition.x + currentRecoilXPos)) + 
-			(mainCamera.transform.up * (currentGunPosition.y+ currentRecoilYPos)) + 
-			(mainCamera.transform.forward * (currentGunPosition.z + currentRecoilZPos)),ref velV, 0.0001f);
+			(mainCamera.transform.up * (currentGunPosition.y + currentRecoilYPos)) + 
+			(mainCamera.transform.forward * (currentGunPosition.z + currentRecoilZPos));
 
-		pmS.cameraPosition = new Vector3(currentRecoilXPos,currentRecoilYPos, 0);
+		// Protección contra NaN — si el cálculo o la posición actual son NaN, resetear
+		if (float.IsNaN(targetPos.x) || float.IsNaN(targetPos.y) || float.IsNaN(targetPos.z))
+		{
+			targetPos = mainCamera.transform.position;
+			velV = Vector3.zero;
+		}
+		if (float.IsNaN(transform.position.x) || float.IsNaN(transform.position.y) || float.IsNaN(transform.position.z))
+		{
+			transform.position = mainCamera.transform.position;
+			velV = Vector3.zero;
+		}
+		if (float.IsNaN(velV.x) || float.IsNaN(velV.y) || float.IsNaN(velV.z))
+		{
+			velV = Vector3.zero;
+		}
 
-		currentRecoilZPos = Mathf.SmoothDamp(currentRecoilZPos, 0, ref velocity_z_recoil, Mathf.Max(recoilOverTime_z, 0.0001f));
-		currentRecoilXPos = Mathf.SmoothDamp(currentRecoilXPos, 0, ref velocity_x_recoil, Mathf.Max(recoilOverTime_x, 0.0001f));
-		currentRecoilYPos = Mathf.SmoothDamp(currentRecoilYPos, 0, ref velocity_y_recoil, Mathf.Max(recoilOverTime_y, 0.0001f));
+		// Posicionar el arma directamente en el objetivo (smoothTime original era 0, o sea instantáneo)
+		transform.position = targetPos;
+
+		pmS.cameraPosition = new Vector3(currentRecoilXPos, currentRecoilYPos, 0);
+
+		currentRecoilZPos = Mathf.SmoothDamp(currentRecoilZPos, 0, ref velocity_z_recoil, Mathf.Max(recoilOverTime_z, 0.001f));
+		currentRecoilXPos = Mathf.SmoothDamp(currentRecoilXPos, 0, ref velocity_x_recoil, Mathf.Max(recoilOverTime_x, 0.001f));
+		currentRecoilYPos = Mathf.SmoothDamp(currentRecoilYPos, 0, ref velocity_y_recoil, Mathf.Max(recoilOverTime_y, 0.001f));
 
 	}
 
