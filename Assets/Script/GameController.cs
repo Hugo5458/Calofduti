@@ -229,7 +229,7 @@ public class GameController : MonoBehaviour
             gameUI.ResetStats();
             
         UnityEngine.SceneManagement.SceneManager.LoadScene(
-            UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex
+            UnityEngine.SceneManagement.SceneManager.GetActiveScene().name
         );
     }
     

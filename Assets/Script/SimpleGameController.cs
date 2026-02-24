@@ -140,7 +140,7 @@ public class SimpleGameController : MonoBehaviour
             gameUI.UpdateHealth(100f);
             
         UnityEngine.SceneManagement.SceneManager.LoadScene(
-            UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex
+            UnityEngine.SceneManagement.SceneManager.GetActiveScene().name
         );
     }
     

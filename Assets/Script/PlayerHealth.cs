@@ -133,7 +133,7 @@ public class PlayerHealth : MonoBehaviour
     
     void RestartGame()
     {
-        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
     
     public bool IsDead()
