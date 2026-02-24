@@ -363,6 +363,31 @@ public class ZombieSpawner : MonoBehaviour
     {
         zombiesAlive = Mathf.Max(0, zombiesAlive - 1);
     }
+    
+    /// <summary>
+    /// Aumenta la cantidad de zombies para las próximas oleadas
+    /// </summary>
+    public void IncreaseWaveDifficulty(int additionalZombies)
+    {
+        // Aumentar la cantidad de zombies en las oleadas infinitas
+        if (currentWaveIndex >= waves.Count)
+        {
+            endlessWaveCount += additionalZombies;
+        }
+        else
+        {
+            // Aumentar zombies en oleadas configuradas
+            for (int i = 0; i < waves.Count; i++)
+            {
+                foreach (var group in waves[i].enemies)
+                {
+                    group.count += additionalZombies;
+                }
+            }
+        }
+        
+        Debug.Log($"Cantidad de zombies por oleada aumentada en +{additionalZombies}");
+    }
 
     public int GetZombiesAlive()
     {

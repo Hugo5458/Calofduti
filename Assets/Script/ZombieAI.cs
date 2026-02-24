@@ -253,6 +253,17 @@ public class ZombieAI : MonoBehaviour
     }
     
     /// <summary>
+    /// Aumenta las estadísticas del zombie para la dificultad progresiva
+    /// </summary>
+    public void IncreaseStats(float speedIncrease, float damageIncrease)
+    {
+        moveSpeed += speedIncrease;
+        damage += damageIncrease;
+        
+        Debug.Log($"Zombie stats increased: Speed={moveSpeed}, Damage={damage}");
+    }
+    
+    /// <summary>
     /// Activa la animación de muerte.
     /// </summary>
     public void PlayDeathAnimation()
