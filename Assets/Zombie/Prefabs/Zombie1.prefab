@@ -1797,12 +1797,14 @@ MonoBehaviour:
   damage: 10
   attackRate: 0.25
   detectionRange: 3000
-  attackRange: 30
+  attackRange: 5
   moveSpeed: 10
   rotationSpeed: 5
-  groundCheckDistance: 2
+  gravity: -15
   separationDistance: 1.2
   separationForce: 2
+  obstacleDetectionRange: 2.5
+  obstacleAvoidanceForce: 5
   player: {fileID: 0}
   attackSounds: []
 --- !u!114 &-5639316477399819704

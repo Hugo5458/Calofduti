@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 using System.Collections;
 //using UnityStandardAssets.ImageEffects;
 
@@ -604,19 +605,39 @@ public class GunScript : MonoBehaviour {
 	 */
 	[Tooltip("HUD bullets to display bullet count on screen. Will be find under name 'HUD_bullets' in scene.")]
 	public Text HUD_bullets;
+	public TextMeshProUGUI HUD_bullets_TMP; // Soporte para TextMeshPro
+	public TextMesh HUD_bullets_3D; // Soporte para TextMesh 3D
 	void OnGUI(){
-		if(!HUD_bullets){
+		if(!HUD_bullets && !HUD_bullets_TMP && !HUD_bullets_3D){
 			try{
+				// Buscar por varios nombres posibles
 				GameObject hudObj = GameObject.Find("HUD_bullets");
-				if (hudObj != null)
+				if (hudObj == null) hudObj = GameObject.Find("HUD_Ammo");
+				if (hudObj == null) hudObj = GameObject.Find("AmmoText");
+				if (hudObj == null) hudObj = GameObject.Find("ammoText");
+				if (hudObj != null){
 					HUD_bullets = hudObj.GetComponent<Text>();
+					HUD_bullets_TMP = hudObj.GetComponent<TextMeshProUGUI>();
+					HUD_bullets_3D = hudObj.GetComponent<TextMesh>();
+				}
 			}
 			catch(System.Exception ex){
 				Debug.LogWarning("Couldnt find the HUD_Bullets ->" + ex.Message);
 			}
 		}
-		if(mls != null && HUD_bullets != null)
-			HUD_bullets.text = bulletsIHave.ToString() + " - " + bulletsInTheGun.ToString();
+		
+		// Actualizar texto según el tipo de componente encontrado
+		string ammoText = Mathf.FloorToInt(bulletsInTheGun).ToString() + " / " + Mathf.FloorToInt(bulletsIHave).ToString();
+		
+		if(HUD_bullets_TMP != null){
+			HUD_bullets_TMP.text = ammoText;
+		}
+		else if(HUD_bullets != null){
+			HUD_bullets.text = ammoText;
+		}
+		else if(HUD_bullets_3D != null){
+			HUD_bullets_3D.text = ammoText;
+		}
 
 		DrawCrosshair();
 	}

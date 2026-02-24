@@ -1,28 +1,37 @@
 using UnityEngine;
 
 /// <summary>
-/// Zombie simple - persigue al jugador en línea recta.
-/// No requiere NavMesh. Usa el nuevo ZombieController con parámetros.
+/// Zombie con colisiones - persigue al jugador esquivando obstáculos.
+/// Usa CharacterController para respetar colliders de casas/edificios.
 /// </summary>
 public class ZombieAI : MonoBehaviour
 {
     [Header("Estadísticas")]
     public float damage = 10f;
     public float attackRate = 1f;
+    public float maxHealth = 100f;
     public float detectionRange = 50f;
-    public float attackRange = 1.2f;
+    public float attackRange = 2.5f;
     public float moveSpeed = 3f;
     
     [Header("Movimiento")]
     public float rotationSpeed = 5f;
-    public float groundCheckDistance = 2f;
+    public float gravity = -15f;
     [Tooltip("Distancia mínima entre zombies para evitar solapamiento")]
     public float separationDistance = 1.2f;
     [Tooltip("Fuerza de separación entre zombies")]
     public float separationForce = 2f;
     
+    [Header("Evitación de Obstáculos")]
+    [Tooltip("Distancia del raycast para detectar obstáculos delante")]
+    public float obstacleDetectionRange = 2.5f;
+    [Tooltip("Fuerza para esquivar obstáculos")]
+    public float obstacleAvoidanceForce = 5f;
+    
     [Header("Referencias")]
     public Transform player;
+    [Tooltip("¿Es este zombie un Ghoul? (Afecta el tamaño de la hitbox)")]
+    public bool isGhoul = false;
     
     [Header("Audio")]
     public AudioClip[] attackSounds;
@@ -30,9 +39,11 @@ public class ZombieAI : MonoBehaviour
     private Animator animator;
     private AudioSource audioSource;
     private ZombieHealth health;
+    private CharacterController characterController;
     
     private float nextAttackTime = 0f;
     private bool initialized = false;
+    private float verticalVelocity = 0f;
     
     void Start()
     {
@@ -53,11 +64,39 @@ public class ZombieAI : MonoBehaviour
             agent.enabled = false;
         }
 
-        // Desactivar CharacterController si existe (conflicto con movimiento directo)
-        CharacterController cc = GetComponent<CharacterController>();
-        if (cc != null)
+        // Configurar CharacterController para colisiones con casas/edificios
+        characterController = GetComponent<CharacterController>();
+        if (characterController == null)
         {
-            cc.enabled = false;
+            characterController = gameObject.AddComponent<CharacterController>();
+        }
+        
+        // Ajustar tamaño según tipo de zombie
+        if (isGhoul)
+        {
+            // Ghoul: tamaño 20 (radio 1.0, altura 4.0)
+            characterController.center = new Vector3(0f, 2f, 0f);
+            characterController.height = 4f;
+            characterController.radius = 1.0f;
+        }
+        else
+        {
+            // Zombie normal: tamaño 10 (radio 0.5, altura 2.0)
+            characterController.center = new Vector3(0f, 1f, 0f);
+            characterController.height = 2f;
+            characterController.radius = 0.5f;
+        }
+        
+        characterController.slopeLimit = 45f;
+        characterController.stepOffset = 0.5f;
+        characterController.skinWidth = 0.08f;
+        characterController.enabled = true;
+        
+        // Sincronizar ZombieHealth con maxHealth
+        if (health != null)
+        {
+            health.maxHealth = maxHealth;
+            health.currentHealth = maxHealth;
         }
         
         if (audioSource == null)
@@ -100,6 +139,7 @@ public class ZombieAI : MonoBehaviour
     {
         if (!initialized) return;
         if (health != null && health.IsDead()) return;
+        if (characterController == null || !characterController.enabled) return;
         
         // Si no hay player, intentar buscarlo de nuevo
         if (player == null)
@@ -129,57 +169,101 @@ public class ZombieAI : MonoBehaviour
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
         }
         
+        // Gravedad
+        if (characterController.isGrounded)
+        {
+            verticalVelocity = -2f; // Mantiene al zombie pegado al suelo
+        }
+        else
+        {
+            verticalVelocity += gravity * Time.deltaTime;
+        }
+        
         // Perseguir o atacar
         if (distanceToPlayer <= attackRange)
         {
-            // Atacar
+            // Atacar - solo aplicar gravedad
             SetSpeed(0f);
             Attack();
+            
+            Vector3 gravityMove = new Vector3(0f, verticalVelocity * Time.deltaTime, 0f);
+            characterController.Move(gravityMove);
         }
         else if (distanceToPlayer <= detectionRange)
         {
             // Perseguir
             SetSpeed(1f);
             
-            // Movimiento directo hacia el jugador (solo XZ, mantener Y)
-            Vector3 movement = direction * moveSpeed * Time.deltaTime;
+            // Dirección base hacia el jugador
+            Vector3 moveDir = direction * moveSpeed;
+            
+            // Evitar obstáculos (casas, edificios, etc.)
+            Vector3 avoidance = GetObstacleAvoidance(direction);
+            moveDir += avoidance;
             
             // Añadir separación de otros zombies
             Vector3 separation = GetSeparationVector();
-            movement += separation * Time.deltaTime;
+            moveDir += separation;
             
-            // Solo mover en XZ, mantener la Y actual (sin gravedad)
-            transform.position += new Vector3(movement.x, 0f, movement.z);
+            // Movimiento final con gravedad usando CharacterController
+            Vector3 finalMove = new Vector3(moveDir.x, verticalVelocity, moveDir.z) * Time.deltaTime;
+            characterController.Move(finalMove);
         }
         else
         {
+            // Idle - solo aplicar gravedad
             SetSpeed(0f);
+            Vector3 gravityMove = new Vector3(0f, verticalVelocity * Time.deltaTime, 0f);
+            characterController.Move(gravityMove);
         }
-        
-        // Mantener en el suelo (siempre activo)
-        UpdateGroundPosition();
     }
     
     /// <summary>
-    /// Mantiene al zombie pegado al suelo usando raycast
+    /// Usa raycasts para detectar obstáculos (casas, edificios) y calcular
+    /// una dirección de evasión para rodearlos.
     /// </summary>
-    void UpdateGroundPosition()
+    Vector3 GetObstacleAvoidance(Vector3 moveDirection)
     {
-        RaycastHit hit;
-        Vector3 origin = transform.position + Vector3.up * 1f;
+        Vector3 avoidance = Vector3.zero;
+        Vector3 origin = transform.position + Vector3.up * 0.5f;
         
-        if (Physics.Raycast(origin, Vector3.down, out hit, groundCheckDistance + 1f))
+        // Raycast frontal
+        RaycastHit hit;
+        if (Physics.Raycast(origin, moveDirection, out hit, obstacleDetectionRange))
         {
-            // Solo ajustar si está demasiado lejos del suelo
-            float distanceToGround = Vector3.Distance(origin, hit.point);
-            if (distanceToGround > 1.5f)
+            // Ignorar si es otro zombie, el jugador, o es terreno
+            if (hit.collider is TerrainCollider) return avoidance;
+            if (hit.collider.GetComponent<ZombieAI>() != null) return avoidance;
+            if (hit.collider.GetComponent<ZombieHealth>() != null) return avoidance;
+            if (hit.collider.CompareTag("Player")) return avoidance;
+            
+            // Hay un obstáculo (casa/edificio) - calcular evasión
+            float obstacleProximity = 1f - (hit.distance / obstacleDetectionRange);
+            
+            // Probar izquierda y derecha para elegir la mejor dirección
+            Vector3 rightDir = Quaternion.Euler(0, 45, 0) * moveDirection;
+            Vector3 leftDir = Quaternion.Euler(0, -45, 0) * moveDirection;
+            
+            bool rightBlocked = Physics.Raycast(origin, rightDir, obstacleDetectionRange * 0.7f);
+            bool leftBlocked = Physics.Raycast(origin, leftDir, obstacleDetectionRange * 0.7f);
+            
+            if (!rightBlocked)
             {
-                // Colocar suavemente en el suelo
-                Vector3 newPos = transform.position;
-                newPos.y = hit.point.y;
-                transform.position = newPos;
+                avoidance = Quaternion.Euler(0, 90, 0) * moveDirection * obstacleAvoidanceForce * obstacleProximity;
+            }
+            else if (!leftBlocked)
+            {
+                avoidance = Quaternion.Euler(0, -90, 0) * moveDirection * obstacleAvoidanceForce * obstacleProximity;
+            }
+            else
+            {
+                // Ambos lados bloqueados - girar completamente
+                avoidance = Quaternion.Euler(0, 180, 0) * moveDirection * obstacleAvoidanceForce * obstacleProximity;
             }
         }
+        
+        avoidance.y = 0f;
+        return avoidance;
     }
     
     void SetSpeed(float speed)
@@ -223,31 +307,46 @@ public class ZombieAI : MonoBehaviour
     
     void Attack()
     {
-        if (Time.time >= nextAttackTime)
+        if (Time.time < nextAttackTime) return;
+        
+        nextAttackTime = Time.time + attackRate;
+        
+        // Reproducir animación de ataque
+        if (animator != null)
         {
-            nextAttackTime = Time.time + attackRate;
-            
-            // Animación de ataque
-            if (animator != null && animator.enabled)
+            animator.SetTrigger("Attack");
+        }
+        
+        // También intentar con GhoulAnimationController si existe
+        GhoulAnimationController ghoulAnimator = GetComponent<GhoulAnimationController>();
+        if (ghoulAnimator != null)
+        {
+            ghoulAnimator.PlayAttackAnimation();
+        }
+        
+        // Reproducir sonido de ataque
+        if (audioSource != null && attackSounds.Length > 0)
+        {
+            int randomSound = Random.Range(0, attackSounds.Length);
+            audioSource.PlayOneShot(attackSounds[randomSound]);
+        }
+        
+        // VERIFICAR distancia real antes de aplicar daño
+        // Solo hace daño si está realmente cerca (distancia de golpe)
+        if (player != null)
+        {
+            float realDistance = Vector3.Distance(transform.position, player.position);
+            if (realDistance <= attackRange)
             {
-                animator.SetTrigger("Attack");
-            }
-            
-            // Sonido de ataque
-            if (attackSounds != null && attackSounds.Length > 0 && audioSource != null)
-            {
-                audioSource.PlayOneShot(attackSounds[Random.Range(0, attackSounds.Length)]);
-            }
-            
-            // Aplicar daño al jugador
-            PlayerHealth playerHealth = player.GetComponent<PlayerHealth>();
-            if (playerHealth == null)
-            {
-                playerHealth = player.GetComponentInChildren<PlayerHealth>();
-            }
-            if (playerHealth != null)
-            {
-                playerHealth.TakeDamage(damage);
+                PlayerHealth playerHealth = player.GetComponentInChildren<PlayerHealth>();
+                if (playerHealth == null)
+                {
+                    playerHealth = player.GetComponent<PlayerHealth>();
+                }
+                if (playerHealth != null)
+                {
+                    playerHealth.TakeDamage(damage);
+                }
             }
         }
     }
@@ -272,6 +371,17 @@ public class ZombieAI : MonoBehaviour
         {
             animator.SetBool("Dead", true);
         }
+    }
+    
+    /// <summary>
+    /// Verifica si el zombie está persiguiendo al jugador
+    /// </summary>
+    public bool IsChasing()
+    {
+        if (player == null) return false;
+        
+        float distanceToPlayer = Vector3.Distance(transform.position, player.position);
+        return distanceToPlayer <= detectionRange && distanceToPlayer > attackRange;
     }
     
     void OnDrawGizmosSelected()

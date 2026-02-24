@@ -63,6 +63,9 @@ public class ZombieHealth : MonoBehaviour
         if (isDead) return;
         isDead = true;
         
+        // Cambiar layer para no bloquear raycast de balas (objeto y todos sus hijos)
+        ChangeLayerRecursively(gameObject, LayerMask.NameToLayer("Ignore Raycast"));
+        
         // Añadir puntuación
         GameManager gameManager = FindObjectOfType<GameManager>();
         if (gameManager != null)
@@ -96,6 +99,13 @@ public class ZombieHealth : MonoBehaviour
             col.enabled = false;
         }
         
+        // Desactivar CharacterController para no bloquear a otros
+        CharacterController cc = GetComponent<CharacterController>();
+        if (cc != null)
+        {
+            cc.enabled = false;
+        }
+        
         // Desactivar NavMeshAgent si existe
         UnityEngine.AI.NavMeshAgent agent = GetComponent<UnityEngine.AI.NavMeshAgent>();
         if (agent != null)
@@ -111,6 +121,18 @@ public class ZombieHealth : MonoBehaviour
         
         // Destruir después de un tiempo
         Destroy(gameObject, 3f);
+    }
+    
+    void ChangeLayerRecursively(GameObject obj, int newLayer)
+    {
+        if (obj == null) return;
+        
+        obj.layer = newLayer;
+        
+        foreach (Transform child in obj.transform)
+        {
+            ChangeLayerRecursively(child.gameObject, newLayer);
+        }
     }
     
     public bool IsDead()
