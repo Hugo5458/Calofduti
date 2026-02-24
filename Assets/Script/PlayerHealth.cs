@@ -104,18 +104,31 @@ public class PlayerHealth : MonoBehaviour
         }
         
         // Desactivar controles del jugador
-        var controller = GetComponent<UnityStandardAssets.Characters.FirstPerson.FirstPersonController>();
-        if (controller != null)
+        MouseLookScript mls = GetComponent<MouseLookScript>();
+        if (mls != null)
         {
-            controller.enabled = false;
+            mls.enabled = false;
+        }
+        PlayerMovementScript pms = GetComponent<PlayerMovementScript>();
+        if (pms != null)
+        {
+            pms.enabled = false;
         }
         
         // Mostrar cursor
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
         
-        // Reiniciar escena después de un delay
-        Invoke("RestartGame", 3f);
+        // Notificar al GameManager
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.GameOver();
+        }
+        else
+        {
+            // Si no hay GameManager, reiniciar después de un delay
+            Invoke("RestartGame", 3f);
+        }
     }
     
     void RestartGame()

@@ -40,14 +40,23 @@ public class ZombieHealth : MonoBehaviour
         
         currentHealth -= damage;
         
+        // Mostrar popup de daño flotante encima de la cabeza
+        Vector3 headPos = transform.position + Vector3.up * 2.2f; // Encima de la cabeza
+        DamagePopup.Spawn(headPos, damage, damage >= 50f);
+        
         // Sonido de daño
         if (hurtSound != null && audioSource != null)
         {
             audioSource.PlayOneShot(hurtSound);
         }
         
-        // Animación de daño
-        if (animator != null)
+        // Animación de daño (a través de GhoulAnimationController)
+        GhoulAnimationController animCtrl = GetComponent<GhoulAnimationController>();
+        if (animCtrl != null)
+        {
+            animCtrl.PlayHitAnimation();
+        }
+        else if (animator != null)
         {
             animator.SetTrigger("Hit");
         }
@@ -80,7 +89,12 @@ public class ZombieHealth : MonoBehaviour
             audioSource.PlayOneShot(deathSound);
         }
         
-        // Animación de muerte (a través de ZombieAI)
+        // Animación de muerte
+        GhoulAnimationController animCtrl = GetComponent<GhoulAnimationController>();
+        if (animCtrl != null)
+        {
+            animCtrl.PlayDeathAnimation();
+        }
         if (zombieAI != null)
         {
             zombieAI.PlayDeathAnimation();

@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 /// <summary>
 /// GameController simple que integra los sistemas básicos
@@ -255,9 +256,19 @@ public class SimpleGameController : MonoBehaviour
     
     #endregion
     
-    void OnLevelWasLoaded(int level)
+    void OnEnable()
     {
-        Debug.Log($"Nivel cargado: {level}");
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+    
+    void OnDisable()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+    
+    void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        Debug.Log($"Nivel cargado: {scene.buildIndex}");
         SetupSystems();
         ConfigureInitialState();
     }

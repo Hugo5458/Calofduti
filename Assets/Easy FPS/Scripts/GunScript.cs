@@ -321,7 +321,7 @@ public class GunScript : MonoBehaviour {
 	}
 
 
-	private Vector3 velV;
+
 	[HideInInspector]
 	public Transform mainCamera;
 	private Camera secondCamera;
@@ -418,6 +418,13 @@ public class GunScript : MonoBehaviour {
 		gunWeightX = Mathf.SmoothDamp (gunWeightX, mls.currentCameraXRotation, ref velocityGunRotate.x, safeLagTime);
 		gunWeightY = Mathf.SmoothDamp (gunWeightY, mls.currentYRotation, ref velocityGunRotate.y, safeLagTime);
 
+		// Sanitizar resultados contra NaN
+		gunWeightX = SafeFloat(gunWeightX);
+		gunWeightY = SafeFloat(gunWeightY);
+		angularVelocityX = SafeFloat(angularVelocityX);
+		angularVelocityY = SafeFloat(angularVelocityY);
+		velocityGunRotate = new Vector2(SafeFloat(velocityGunRotate.x), SafeFloat(velocityGunRotate.y));
+
 		transform.rotation = Quaternion.Euler (gunWeightX + (angularVelocityX*forwardRotationAmount.x), gunWeightY + (angularVelocityY*forwardRotationAmount.y), 0);
 	}
 
@@ -441,6 +448,8 @@ public class GunScript : MonoBehaviour {
 	[Header("Shooting setup")]
 	[Tooltip("Bullet prefab that this waepon will shoot.")]
 	public GameObject bullet;
+	[Tooltip("Place where the bullet will spawn from.")]
+	public GameObject bulletSpawnPlace;
 	[Tooltip("Rounds per second if weapon is set to automatic rafal.")]
 	public float roundsPerSecond;
 	private float waitTillNextFire;
@@ -542,28 +551,126 @@ public class GunScript : MonoBehaviour {
 			if(shoot_sound_source != null)
 				shoot_sound_source.Play();
 
-			// Validar que el array muzzelFlash tenga elementos
+			// === RAYCAST INSTANTÁNEO para detectar impacto (como un FPS real) ===
+			Vector3 shootOrigin = mainCamera != null ? mainCamera.position : transform.position;
+			Vector3 shootDirection = mainCamera != null ? mainCamera.forward : transform.forward;
+			
+			// Añadir dispersión basada en gunPrecision
+			float spread = (1f - gunPrecision) * 0.02f;
+			shootDirection += new Vector3(
+				Random.Range(-spread, spread),
+				Random.Range(-spread, spread),
+				Random.Range(-spread, spread)
+			);
+			shootDirection.Normalize();
+			
+			RaycastHit hitInfo;
+			float maxRange = 500f;
+			
+			// Ignorar la capa del arma y del jugador
+			int layerMask = ~(LayerMask.GetMask("Ignore Raycast") | (1 << gameObject.layer));
+			
+			if (Physics.Raycast(shootOrigin, shootDirection, out hitInfo, maxRange, layerMask))
+			{
+				// Calcular daño base
+				float bulletDamage = 25f;
+				if (bullet != null)
+				{
+					BulletScript bs = bullet.GetComponent<BulletScript>();
+					if (bs != null) bulletDamage = bs.damage;
+				}
+				
+				bool hitTarget = false;
+				
+				// 1. Verificar si golpeamos un ZombieHitbox (hitbox de parte del cuerpo)
+				ZombieHitbox hitbox = hitInfo.collider.GetComponent<ZombieHitbox>();
+				if (hitbox == null) hitbox = hitInfo.collider.GetComponentInParent<ZombieHitbox>();
+				
+				if (hitbox != null)
+				{
+					hitbox.TakeDamage(bulletDamage);
+					hitTarget = true;
+					string hitType = hitbox.hitboxType == ZombieHitbox.HitboxType.Head ? "HEADSHOT!" : hitbox.hitboxType.ToString();
+					Debug.Log($"[GunScript] {hitType} zombie: {hitInfo.collider.name} for {bulletDamage * hitbox.damageMultiplier} damage");
+				}
+				
+				// 2. Verificar ZombieHealth directamente (zombie sin hitbox individual)
+				if (!hitTarget)
+				{
+					ZombieHealth zombieHP = hitInfo.collider.GetComponent<ZombieHealth>();
+					if (zombieHP == null) zombieHP = hitInfo.collider.GetComponentInParent<ZombieHealth>();
+					if (zombieHP == null) zombieHP = hitInfo.collider.GetComponentInChildren<ZombieHealth>();
+					
+					if (zombieHP != null && !zombieHP.IsDead())
+					{
+						zombieHP.TakeDamage(bulletDamage);
+						hitTarget = true;
+						Debug.Log($"[GunScript] Hit zombie: {hitInfo.collider.name} for {bulletDamage} damage");
+					}
+				}
+				
+				// 3. Verificar SimpleZombie (versión simplificada sin ZombieHealth)
+				if (!hitTarget)
+				{
+					SimpleZombie simpleZ = hitInfo.collider.GetComponent<SimpleZombie>();
+					if (simpleZ == null) simpleZ = hitInfo.collider.GetComponentInParent<SimpleZombie>();
+					
+					if (simpleZ != null)
+					{
+						simpleZ.TakeDamage(bulletDamage);
+						hitTarget = true;
+						Debug.Log($"[GunScript] Hit SimpleZombie: {hitInfo.collider.name} for {bulletDamage} damage");
+					}
+				}
+				
+				// Efectos de impacto según si fue zombie o no
+				if (hitTarget)
+				{
+					// Efecto de sangre
+					if (bullet != null)
+					{
+						BulletScript bs = bullet.GetComponent<BulletScript>();
+						if (bs != null && bs.bloodEffect != null)
+						{
+							Instantiate(bs.bloodEffect, hitInfo.point, Quaternion.LookRotation(hitInfo.normal));
+						}
+					}
+					GunScript.HitMarkerSound();
+				}
+				else
+				{
+					// Impacto en pared/suelo — crear decal
+					if (bullet != null)
+					{
+						BulletScript bs = bullet.GetComponent<BulletScript>();
+						if (bs != null && bs.decalHitWall != null)
+						{
+							try {
+								if (hitInfo.collider.CompareTag("LevelPart"))
+									Instantiate(bs.decalHitWall, hitInfo.point + hitInfo.normal * 0.01f, Quaternion.LookRotation(hitInfo.normal));
+							} catch (System.Exception) { /* Tag no definido, ignorar */ }
+						}
+					}
+				}
+			}
+
+			// Spawn bala visual (si existe bulletSpawnPlace)
+			if (bullet != null && bulletSpawnPlace != null)
+			{
+				GameObject bulletObj = Instantiate(bullet, bulletSpawnPlace.transform.position, bulletSpawnPlace.transform.rotation);
+				Destroy(bulletObj, 0.1f); // Destruir rápido — solo es visual
+			}
+			
+			// Muzzle flash
 			if (muzzelFlash != null && muzzelFlash.Length > 0)
 			{
-				int randomNumberForMuzzelFlash = Random.Range(0, muzzelFlash.Length);
-				
-				if (bullet && bulletSpawnPlace != null)
-					Instantiate (bullet, bulletSpawnPlace.transform.position, bulletSpawnPlace.transform.rotation);
-				else if (bullet == null)
-					Debug.LogWarning("Missing bullet prefab");
-				else if (bulletSpawnPlace == null)
-					Debug.LogWarning("Missing bulletSpawnPlace");
-				
-				if (muzzelSpawn != null && muzzelFlash[randomNumberForMuzzelFlash] != null)
+				int randomMuzzel = Random.Range(0, muzzelFlash.Length);
+				if (muzzelSpawn != null && muzzelFlash[randomMuzzel] != null)
 				{
-					holdFlash = Instantiate(muzzelFlash[randomNumberForMuzzelFlash], muzzelSpawn.transform.position, muzzelSpawn.transform.rotation * Quaternion.Euler(0,0,90)) as GameObject;
+					holdFlash = Instantiate(muzzelFlash[randomMuzzel], muzzelSpawn.transform.position, muzzelSpawn.transform.rotation * Quaternion.Euler(0,0,90)) as GameObject;
 					if (holdFlash != null && muzzelSpawn != null)
 						holdFlash.transform.parent = muzzelSpawn.transform;
 				}
-			}
-			else
-			{
-				Debug.LogWarning("muzzelFlash array is null or empty");
 			}
 		}
 		else if(!reloading){
@@ -583,11 +690,8 @@ public class GunScript : MonoBehaviour {
 	IEnumerator Reload_Animation(){
 		if(bulletsIHave > 0 && bulletsInTheGun < amountOfBulletsPerLoad && !reloading/* && !aiming*/){
 
-			if (reloadSound_source.isPlaying == false && reloadSound_source != null) {
-				if (reloadSound_source)
-					reloadSound_source.Play ();
-				else
-					print ("'Reload Sound Source' missing.");
+			if (reloadSound_source != null && reloadSound_source.isPlaying == false) {
+				reloadSound_source.Play ();
 			}
 		
 

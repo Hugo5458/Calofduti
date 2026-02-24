@@ -385,6 +385,24 @@ public class ZombieSpawner : MonoBehaviour
             zombieHealth.currentHealth = zombieAI.maxHealth;
         }
         
+        // Añadir GhoulAnimationController para animaciones (ataque, daño, muerte)
+        GhoulAnimationController animController = enemy.GetComponent<GhoulAnimationController>();
+        if (animController == null)
+        {
+            animController = enemy.AddComponent<GhoulAnimationController>();
+        }
+        
+        // Verificar que tiene Animator
+        Animator animator = enemy.GetComponent<Animator>();
+        if (animator == null)
+        {
+            animator = enemy.GetComponentInChildren<Animator>();
+        }
+        if (animator != null)
+        {
+            animator.applyRootMotion = false; // ZombieAI controla el movimiento
+        }
+        
         // El CharacterController se añade automáticamente en el Initialize() de ZombieAI
         // pero nos aseguramos que exista un Collider básico para detección
         Collider col = enemy.GetComponent<Collider>();

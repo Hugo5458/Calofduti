@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 /// <summary>
 /// Controlador principal del juego que integra todos los sistemas.
@@ -396,9 +397,19 @@ public class GameController : MonoBehaviour
     
     #endregion
     
-    void OnLevelWasLoaded(int level)
+    void OnEnable()
     {
-        Debug.Log($"Nivel cargado: {level}");
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+    
+    void OnDisable()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+    
+    void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        Debug.Log($"Nivel cargado: {scene.buildIndex}");
         
         // Reconfigurar sistemas cuando se carga un nuevo nivel
         SetupSystems();
