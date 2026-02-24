@@ -389,7 +389,7 @@ public class AutoPauseMenuTool : MonoBehaviour
         CrearTexto(panelOpciones.transform, "♫  VOLUMEN", 20, FontStyle.Bold, textoColor, 28);
 
         GameObject volContainer = CrearContainerHorizontal("VolumenContainer", panelOpciones.transform, 35);
-        float volActual = PlayerPrefs.GetFloat("Volume", 1f);
+        float volActual = PlayerPrefs.GetFloat("Volume", 0.5f);
         sliderVolumen = CrearSliderEnContainer(volContainer.transform, 0f, 1f, volActual);
         textoVolumenValor = CrearTextoEnContainer(volContainer.transform,
             Mathf.RoundToInt(volActual * 100) + "%", 50);
@@ -409,7 +409,7 @@ public class AutoPauseMenuTool : MonoBehaviour
         CrearTexto(panelOpciones.transform, "☀  BRILLO", 20, FontStyle.Bold, textoColor, 28);
 
         GameObject briContainer = CrearContainerHorizontal("BrilloContainer", panelOpciones.transform, 35);
-        float briActual = PlayerPrefs.GetFloat("Brightness", 1f);
+        float briActual = PlayerPrefs.GetFloat("Brightness", 0.5f);
         sliderBrillo = CrearSliderEnContainer(briContainer.transform, 0.1f, 1f, briActual);
         textoBrilloValor = CrearTextoEnContainer(briContainer.transform,
             Mathf.RoundToInt(briActual * 100) + "%", 50);
