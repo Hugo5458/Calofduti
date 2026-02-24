@@ -121,6 +121,27 @@ public class AutoPauseMenuTool : MonoBehaviour
         return isPaused;
     }
 
+    /// <summary>
+    /// Método público para pausar desde otros scripts (GameController, etc.)
+    /// </summary>
+    public void PauseGame()
+    {
+        if (!menuCreated)
+        {
+            CrearMenuCompleto();
+            menuCreated = true;
+        }
+        Pausar();
+    }
+
+    /// <summary>
+    /// Método público para reanudar desde otros scripts (GameController, etc.)
+    /// </summary>
+    public void ResumeGame()
+    {
+        Reanudar();
+    }
+
     // ============================
     //  ANIMACIÓN DE ENTRADA
     // ============================
