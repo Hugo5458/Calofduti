@@ -409,8 +409,7 @@ public class GunScript : MonoBehaviour {
 
 	}
 
-	[Header("Shooting setup - MUSTDO")]
-	[HideInInspector] public GameObject bulletSpawnPlace;
+	[Header("Shooting setup")]
 	[Tooltip("Bullet prefab that this waepon will shoot.")]
 	public GameObject bullet;
 	[Tooltip("Rounds per second if weapon is set to automatic rafal.")]

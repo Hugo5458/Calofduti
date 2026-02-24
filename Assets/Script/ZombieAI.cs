@@ -188,6 +188,8 @@ public class ZombieAI : MonoBehaviour
             
             Vector3 gravityMove = new Vector3(0f, verticalVelocity * Time.deltaTime, 0f);
             characterController.Move(gravityMove);
+            
+            Debug.Log($"[ZombieAI] {gameObject.name} in attack range (distance: {distanceToPlayer:F2})");
         }
         else if (distanceToPlayer <= detectionRange)
         {
@@ -311,10 +313,17 @@ public class ZombieAI : MonoBehaviour
         
         nextAttackTime = Time.time + attackRate;
         
+        Debug.Log($"[ZombieAI] {gameObject.name} attacking player at distance {Vector3.Distance(transform.position, player.position)}");
+        
         // Reproducir animación de ataque
-        if (animator != null)
+        if (animator != null && animator.enabled)
         {
             animator.SetTrigger("Attack");
+            Debug.Log("[ZombieAI] Attack trigger sent to Animator");
+        }
+        else
+        {
+            Debug.LogWarning($"[ZombieAI] {gameObject.name}: Animator is null or disabled");
         }
         
         // También intentar con GhoulAnimationController si existe
@@ -322,6 +331,7 @@ public class ZombieAI : MonoBehaviour
         if (ghoulAnimator != null)
         {
             ghoulAnimator.PlayAttackAnimation();
+            Debug.Log("[ZombieAI] Attack animation sent to GhoulAnimationController");
         }
         
         // Reproducir sonido de ataque
@@ -336,6 +346,8 @@ public class ZombieAI : MonoBehaviour
         if (player != null)
         {
             float realDistance = Vector3.Distance(transform.position, player.position);
+            Debug.Log($"[ZombieAI] Real distance to player: {realDistance}, Attack range: {attackRange}");
+            
             if (realDistance <= attackRange)
             {
                 PlayerHealth playerHealth = player.GetComponentInChildren<PlayerHealth>();
@@ -345,9 +357,22 @@ public class ZombieAI : MonoBehaviour
                 }
                 if (playerHealth != null)
                 {
+                    Debug.Log($"[ZombieAI] Applying {damage} damage to player");
                     playerHealth.TakeDamage(damage);
                 }
+                else
+                {
+                    Debug.LogError("[ZombieAI] PlayerHealth component not found on player!");
+                }
             }
+            else
+            {
+                Debug.Log("[ZombieAI] Player too far to attack");
+            }
+        }
+        else
+        {
+            Debug.LogError("[ZombieAI] Player reference is null!");
         }
     }
     

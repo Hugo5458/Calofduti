@@ -23,46 +23,74 @@ public class BulletScript : MonoBehaviour {
 	* If raycast finds somethig it will create a decal of corresponding tag.
 	*/
 	void Update () {
-
-		if(Physics.Raycast(transform.position, transform.forward,out hit, maxDistance, ~ignoreLayer)){
-			if(decalHitWall){
-				if(hit.transform.tag == "LevelPart"){
-					Instantiate(decalHitWall, hit.point + hit.normal * floatInfrontOfWall, Quaternion.LookRotation(hit.normal));
-					Destroy(gameObject);
-					return;
+		
+		// Detectar zombies en un radio alrededor de la bala (más fiable que raycast solo)
+		Collider[] hitColliders = Physics.OverlapSphere(transform.position, 0.5f, ~ignoreLayer);
+		bool zombieHit = false;
+		
+		foreach (Collider hitCollider in hitColliders)
+		{
+			// Priorizar detección de zombies
+			ZombieHealth zombieHealth = hitCollider.GetComponent<ZombieHealth>();
+			if (zombieHealth == null)
+			{
+				zombieHealth = hitCollider.GetComponentInParent<ZombieHealth>();
+			}
+			if (zombieHealth == null)
+			{
+				zombieHealth = hitCollider.GetComponentInChildren<ZombieHealth>();
+			}
+			
+			if (zombieHealth != null && !zombieHealth.IsDead())
+			{
+				Debug.Log($"[BulletScript] Hit zombie: {hitCollider.name}, Health: {zombieHealth.currentHealth}/{zombieHealth.maxHealth}");
+				zombieHealth.TakeDamage(damage);
+				if (bloodEffect != null)
+				{
+					Instantiate(bloodEffect, transform.position, Quaternion.LookRotation(transform.forward));
 				}
-				if(hit.transform.tag == "Dummie"){
-					Instantiate(bloodEffect, hit.point, Quaternion.LookRotation(hit.normal));
-					Destroy(gameObject);
-					return;
-				}
-				
-				// Detectar zombies y aplicar daño (buscar en el objeto golpeado y sus padres)
-				ZombieHealth zombieHealth = hit.transform.GetComponent<ZombieHealth>();
-				if(zombieHealth == null){
-					zombieHealth = hit.transform.GetComponentInParent<ZombieHealth>();
-				}
-				if(zombieHealth == null){
-					zombieHealth = hit.transform.GetComponentInChildren<ZombieHealth>();
-				}
-				
-				if(zombieHealth != null){
-					Debug.Log($"[BulletScript] Hit zombie: {hit.transform.name}, Health: {zombieHealth.currentHealth}/{zombieHealth.maxHealth}");
-					zombieHealth.TakeDamage(damage);
-					if(bloodEffect != null){
-						Instantiate(bloodEffect, hit.point, Quaternion.LookRotation(hit.normal));
+				GunScript.HitMarkerSound();
+				Destroy(gameObject);
+				zombieHit = true;
+				break;
+			}
+			
+			// Detectar otros objetos
+			if (hitCollider.transform.tag == "LevelPart")
+			{
+				if (decalHitWall != null)
+				{
+					RaycastHit wallHit;
+					if (Physics.Raycast(transform.position - transform.forward * 0.1f, transform.forward, out wallHit, 1f, ~ignoreLayer))
+					{
+						Instantiate(decalHitWall, wallHit.point + wallHit.normal * floatInfrontOfWall, Quaternion.LookRotation(wallHit.normal));
 					}
-					GunScript.HitMarkerSound();
-					Destroy(gameObject);
-					return;
 				}
-				
-				// Debug para ver qué está golpeando la bala
-				Debug.Log($"[BulletScript] Hit object: {hit.transform.name}, Tag: {hit.transform.tag}, Layer: {hit.transform.gameObject.layer}");
-			}		
-			Destroy(gameObject);
+				Destroy(gameObject);
+				zombieHit = true;
+				break;
+			}
+			
+			if (hitCollider.transform.tag == "Dummie")
+			{
+				if (bloodEffect != null)
+				{
+					Instantiate(bloodEffect, transform.position, Quaternion.LookRotation(transform.forward));
+				}
+				Destroy(gameObject);
+				zombieHit = true;
+				break;
+			}
 		}
-		Destroy(gameObject, 0.1f);
+		
+		// Si no hit nada, mover la bala hacia adelante
+		if (!zombieHit)
+		{
+			transform.position += transform.forward * 50f * Time.deltaTime;
+		}
+		
+		// Destruir después de un tiempo o distancia
+		Destroy(gameObject, 2f);
 	}
 
 }
