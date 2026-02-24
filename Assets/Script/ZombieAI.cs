@@ -32,7 +32,6 @@ public class ZombieAI : MonoBehaviour
     private ZombieHealth health;
     
     private float nextAttackTime = 0f;
-    private bool isChasing = false;
     private bool initialized = false;
     
     void Start()
@@ -134,14 +133,12 @@ public class ZombieAI : MonoBehaviour
         if (distanceToPlayer <= attackRange)
         {
             // Atacar
-            isChasing = false;
             SetSpeed(0f);
             Attack();
         }
         else if (distanceToPlayer <= detectionRange)
         {
             // Perseguir
-            isChasing = true;
             SetSpeed(1f);
             
             // Movimiento directo hacia el jugador (solo XZ, mantener Y)
@@ -156,7 +153,6 @@ public class ZombieAI : MonoBehaviour
         }
         else
         {
-            isChasing = false;
             SetSpeed(0f);
         }
         
