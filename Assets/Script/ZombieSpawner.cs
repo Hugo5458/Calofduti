@@ -22,8 +22,7 @@ public class Wave
 {
     public string name = "Oleada";
     [Tooltip("Lista de grupos de enemigos que aparecerán en orden")]
-    public List<WaveEnemyConfig> enemies = new List<WaveEnemyConfig>(); // Renombrado de vuelta a 'enemies' para recuperar datos
-    public float difficultyMultiplier = 1.0f;
+    public List<WaveEnemyConfig> enemies = new List<WaveEnemyConfig>();
 }
 
 public class ZombieSpawner : MonoBehaviour
@@ -35,10 +34,19 @@ public class ZombieSpawner : MonoBehaviour
     public float timeBetweenWaves = 5f;
     public int maxZombiesAlive = 20;
 
+    [Header("Configuración de Spawn Aleatorio")]
+    [Tooltip("Radio máximo alrededor de cada punto de spawn donde pueden aparecer los enemigos")]
+    public float spawnRadius = 5f;
+    [Tooltip("Radio mínimo de separación entre zombies al spawnear (para evitar solapamiento)")]
+    public float zombieSeparation = 1.5f;
+    [Tooltip("Intentos máximos para encontrar una posición sin solapamiento")]
+    public int maxSpawnAttempts = 15;
+    [Tooltip("Altura máxima sobre el terreno para considerar válido (evita techos)")]
+    public float maxHeightAboveTerrain = 2f;
+
     [Header("Configuración de Oleadas")]
     public List<Wave> waves = new List<Wave>();
     public bool loopWaves = true;
-    public float endlessDifficultyMultiplier = 0.2f;
 
     private int currentWaveIndex = 0;
     private int zombiesAlive = 0;
@@ -102,7 +110,6 @@ public class ZombieSpawner : MonoBehaviour
     IEnumerator SpawnWaveRoutine()
     {
         List<WaveEnemyConfig> groupsToSpawn = new List<WaveEnemyConfig>();
-        float currentDifficulty = 1.0f;
         int waveNumberDisplay = currentWaveIndex + 1;
         string waveNameDisplay = "";
 
@@ -111,17 +118,15 @@ public class ZombieSpawner : MonoBehaviour
         {
             Wave waveConfig = waves[currentWaveIndex];
             waveNameDisplay = waveConfig.name;
-            currentDifficulty = waveConfig.difficultyMultiplier;
-            groupsToSpawn = waveConfig.enemies; // Usando 'enemies'
+            groupsToSpawn = waveConfig.enemies;
             
             if (groupsToSpawn.Count == 0) Debug.LogWarning($"La oleada {waveNameDisplay} no tiene grupos de enemigos.");
         }
         else if (loopWaves)
         {
-            // OLEADA INFINITA
+            // OLEADA INFINITA - repite la última oleada con más enemigos
             waveNameDisplay = "Oleada Infinita " + (endlessWaveCount + 1);
             waveNumberDisplay = waves.Count + endlessWaveCount + 1;
-            currentDifficulty = 1.0f + (endlessWaveCount * endlessDifficultyMultiplier);
 
             if (waves.Count > 0)
             {
@@ -131,9 +136,9 @@ public class ZombieSpawner : MonoBehaviour
                     WaveEnemyConfig newGroup = new WaveEnemyConfig();
                     newGroup.enemyPrefab = group.enemyPrefab;
                     newGroup.note = group.note + " (Inf)";
-                    newGroup.count = Mathf.CeilToInt(group.count * (1 + (endlessWaveCount * 0.2f))); 
+                    newGroup.count = group.count + (endlessWaveCount * 2);
                     newGroup.initialDelay = group.initialDelay;
-                    newGroup.timeBetweenSpawns = Mathf.Max(0.2f, group.timeBetweenSpawns * 0.9f); 
+                    newGroup.timeBetweenSpawns = group.timeBetweenSpawns;
                     
                     groupsToSpawn.Add(newGroup);
                 }
@@ -179,7 +184,7 @@ public class ZombieSpawner : MonoBehaviour
                     while (zombiesAlive >= maxZombiesAlive) yield return new WaitForSeconds(0.5f);
                 }
 
-                SpawnEnemy(group.enemyPrefab, currentDifficulty);
+                SpawnEnemy(group.enemyPrefab);
 
                 if (group.timeBetweenSpawns > 0) yield return new WaitForSeconds(group.timeBetweenSpawns);
             }
@@ -202,31 +207,156 @@ public class ZombieSpawner : MonoBehaviour
         }
     }
 
-    void SpawnEnemy(GameObject prefab, float difficultyMultiplier)
+    void SpawnEnemy(GameObject prefab)
     {
         if (prefab == null) return;
 
         Transform spawnPoint = spawnPoints[Random.Range(0, spawnPoints.Length)];
-        GameObject enemy = Instantiate(prefab, spawnPoint.position, spawnPoint.rotation);
+        
+        // Buscar una posición aleatoria válida alrededor del punto de spawn
+        Vector3 spawnPosition = FindValidSpawnPosition(spawnPoint.position);
+        
+        GameObject enemy = Instantiate(prefab, spawnPosition, spawnPoint.rotation);
 
-        // Debug.Log($"Spawning {enemy.name} (Dif: {difficultyMultiplier})");
-
-        // Ajustar Salud
-        ZombieHealth health = enemy.GetComponent<ZombieHealth>();
-        if (health != null)
-        {
-            health.maxHealth *= difficultyMultiplier;
-            health.currentHealth = health.maxHealth;
-        }
-
-        // Ajustar Daño
-        ZombieAI ai = enemy.GetComponent<ZombieAI>();
-        if (ai != null)
-        {
-            ai.damage *= difficultyMultiplier;
-        }
+        // Asegurar que el zombie tiene un Collider para no atravesarse con otros
+        EnsureZombieCollision(enemy);
         
         zombiesAlive++;
+    }
+
+    /// <summary>
+    /// Busca una posición aleatoria alrededor del centro del spawn que esté en terreno válido.
+    /// Evita casas, pozos, lagos y otros objetos.
+    /// </summary>
+    Vector3 FindValidSpawnPosition(Vector3 center)
+    {
+        // Obtener la altura del terreno en el centro como referencia
+        float terrainHeightAtCenter = GetTerrainHeight(center);
+
+        for (int attempt = 0; attempt < maxSpawnAttempts; attempt++)
+        {
+            // Generar posición aleatoria en un círculo alrededor del spawn point
+            Vector2 randomCircle = Random.insideUnitCircle * spawnRadius;
+            Vector3 candidatePos = center + new Vector3(randomCircle.x, 0f, randomCircle.y);
+
+            // Verificar que la posición es válida (terreno, no agua, no edificio, no ocupada)
+            if (IsValidSpawnPosition(candidatePos, terrainHeightAtCenter) && !IsPositionOccupied(candidatePos))
+            {
+                // Colocar exactamente sobre el terreno
+                float terrainY = GetTerrainHeight(candidatePos);
+                candidatePos.y = terrainY;
+                return candidatePos;
+            }
+        }
+
+        // Fallback: usar el centro sobre el terreno
+        center.y = terrainHeightAtCenter;
+        return center;
+    }
+
+    /// <summary>
+    /// Verifica que una posición es válida para spawnear:
+    /// - Debe estar sobre terreno (no sobre casas, pozos, etc.)
+    /// - No debe estar en agua
+    /// - No debe estar a una altura anormal (encima de un edificio)
+    /// </summary>
+    bool IsValidSpawnPosition(Vector3 position, float referenceTerrainHeight)
+    {
+        // 1. Verificar que hay terreno debajo
+        float terrainHeight = GetTerrainHeight(position);
+        if (terrainHeight < -1000f) return false; // No hay terreno aquí
+
+        // 2. Hacer raycast desde arriba para ver qué hay
+        RaycastHit hit;
+        if (Physics.Raycast(position + Vector3.up * 50f, Vector3.down, out hit, 100f))
+        {
+            // Rechazar si cae en capa de agua
+            if (hit.collider.gameObject.layer == LayerMask.NameToLayer("Water"))
+            {
+                return false;
+            }
+
+            // Rechazar si el objeto golpeado NO es terreno y está por encima del terreno
+            // (significa que hay un edificio, pozo, etc.)
+            if (!(hit.collider is TerrainCollider))
+            {
+                // Si el raycast pega en algo que no es terreno y está significativamente
+                // por encima del terreno, hay una estructura
+                if (hit.point.y > terrainHeight + maxHeightAboveTerrain)
+                {
+                    return false;
+                }
+            }
+        }
+
+        // 3. Rechazar si la altura del terreno es muy diferente al centro
+        // (podría ser un barranco o zona de agua baja)
+        if (Mathf.Abs(terrainHeight - referenceTerrainHeight) > 5f)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Obtiene la altura del Terrain en una posición XZ.
+    /// Retorna -9999 si no hay terreno.
+    /// </summary>
+    float GetTerrainHeight(Vector3 position)
+    {
+        Terrain terrain = Terrain.activeTerrain;
+        if (terrain != null)
+        {
+            return terrain.SampleHeight(position) + terrain.transform.position.y;
+        }
+
+        // Fallback: usar raycast si no hay Terrain activo
+        RaycastHit hit;
+        if (Physics.Raycast(position + Vector3.up * 50f, Vector3.down, out hit, 100f))
+        {
+            if (hit.collider is TerrainCollider)
+            {
+                return hit.point.y;
+            }
+        }
+        return -9999f;
+    }
+
+    /// <summary>
+    /// Comprueba si ya hay otro zombie demasiado cerca de la posición candidata.
+    /// </summary>
+    bool IsPositionOccupied(Vector3 position)
+    {
+        Collider[] colliders = Physics.OverlapSphere(position, zombieSeparation);
+        foreach (Collider col in colliders)
+        {
+            // Verificar si es un zombie (tiene ZombieAI, ZombieHealth o SimpleZombie)
+            if (col.GetComponent<ZombieAI>() != null ||
+                col.GetComponent<ZombieHealth>() != null ||
+                col.GetComponent<SimpleZombie>() != null)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Asegura que el zombie tiene un Collider para detección.
+    /// La separación entre zombies la maneja el script ZombieAI.
+    /// </summary>
+    void EnsureZombieCollision(GameObject enemy)
+    {
+        // Asegurar que tiene un Collider para detección
+        Collider col = enemy.GetComponent<Collider>();
+        if (col == null)
+        {
+            CapsuleCollider capsule = enemy.AddComponent<CapsuleCollider>();
+            capsule.center = new Vector3(0f, 1f, 0f);
+            capsule.radius = 0.4f;
+            capsule.height = 2f;
+        }
     }
 
     public void ZombieDied()
@@ -237,5 +367,20 @@ public class ZombieSpawner : MonoBehaviour
     public int GetZombiesAlive()
     {
         return zombiesAlive;
+    }
+
+    void OnDrawGizmosSelected()
+    {
+        if (spawnPoints == null) return;
+        
+        Gizmos.color = new Color(0f, 1f, 0f, 0.3f);
+        foreach (Transform point in spawnPoints)
+        {
+            if (point != null)
+            {
+                Gizmos.DrawWireSphere(point.position, spawnRadius);
+                Gizmos.DrawSphere(point.position, 0.3f);
+            }
+        }
     }
 }

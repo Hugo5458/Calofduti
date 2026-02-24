@@ -8,6 +8,7 @@ TagManager:
   - Weapon
   - SecondCamera
   - BulletSpawn
+  - Enemy
   layers:
   - Default
   - TransparentFX
@@ -18,7 +19,7 @@ TagManager:
   - Player
   - PlayerKCC
   - FirstPersonView
-  - 
+  - Enemy
   - 
   - 
   - 

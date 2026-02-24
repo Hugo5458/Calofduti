@@ -265,12 +265,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9be62c6621067174b8c36a869eed8497, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  defaultZombiePrefab: {fileID: 0}
+  defaultZombiePrefab: {fileID: 4493914613880827488, guid: 6dc4cf4496348884d8ee27743ae38562, type: 3}
   spawnPoints: []
   initialSpawnDelay: 3
   timeBetweenWaves: 5
   maxZombiesAlive: 20
-  waves: []
+  spawnRadius: 5
+  zombieSeparation: 1.5
+  maxSpawnAttempts: 10
+  waves:
+  - name: Ronda 1
+    enemies:
+    - note: Zombies normales
+      enemyPrefab: {fileID: 4493914613880827488, guid: 6dc4cf4496348884d8ee27743ae38562, type: 3}
+      count: 4
+      initialDelay: 1
+      timeBetweenSpawns: 0
+    difficultyMultiplier: 1
   loopWaves: 1
   endlessDifficultyMultiplier: 0.2
 --- !u!4 &615371143
