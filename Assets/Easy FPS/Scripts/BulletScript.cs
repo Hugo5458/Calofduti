@@ -29,22 +29,36 @@ public class BulletScript : MonoBehaviour {
 				if(hit.transform.tag == "LevelPart"){
 					Instantiate(decalHitWall, hit.point + hit.normal * floatInfrontOfWall, Quaternion.LookRotation(hit.normal));
 					Destroy(gameObject);
+					return;
 				}
 				if(hit.transform.tag == "Dummie"){
 					Instantiate(bloodEffect, hit.point, Quaternion.LookRotation(hit.normal));
 					Destroy(gameObject);
+					return;
 				}
 				
-				// Detectar zombies y aplicar daño
+				// Detectar zombies y aplicar daño (buscar en el objeto golpeado y sus padres)
 				ZombieHealth zombieHealth = hit.transform.GetComponent<ZombieHealth>();
+				if(zombieHealth == null){
+					zombieHealth = hit.transform.GetComponentInParent<ZombieHealth>();
+				}
+				if(zombieHealth == null){
+					zombieHealth = hit.transform.GetComponentInChildren<ZombieHealth>();
+				}
+				
 				if(zombieHealth != null){
+					Debug.Log($"[BulletScript] Hit zombie: {hit.transform.name}, Health: {zombieHealth.currentHealth}/{zombieHealth.maxHealth}");
 					zombieHealth.TakeDamage(damage);
 					if(bloodEffect != null){
 						Instantiate(bloodEffect, hit.point, Quaternion.LookRotation(hit.normal));
 					}
 					GunScript.HitMarkerSound();
 					Destroy(gameObject);
+					return;
 				}
+				
+				// Debug para ver qué está golpeando la bala
+				Debug.Log($"[BulletScript] Hit object: {hit.transform.name}, Tag: {hit.transform.tag}, Layer: {hit.transform.gameObject.layer}");
 			}		
 			Destroy(gameObject);
 		}

@@ -44,6 +44,7 @@ public class GameUI : MonoBehaviour
     
     // Referencias a componentes del juego
     private GunScript playerGun;
+    private Weapon playerWeapon;
     private PlayerMovementScript playerMovement;
     private AutoPauseMenuTool pauseMenu;
     
@@ -72,6 +73,12 @@ public class GameUI : MonoBehaviour
     {
         if (pauseMenu != null && pauseMenu.IsPaused())
             return;
+        
+        // Reintentar buscar arma si no la tenemos
+        if (playerGun == null && playerWeapon == null)
+        {
+            FindWeaponComponents();
+        }
             
         UpdateGameTime();
         UpdateAmmoDisplay();
@@ -86,9 +93,11 @@ public class GameUI : MonoBehaviour
         GameObject player = GameObject.FindGameObjectWithTag("Player");
         if (player != null)
         {
-            playerGun = player.GetComponent<GunScript>();
             playerMovement = player.GetComponent<PlayerMovementScript>();
         }
+        
+        // Buscar arma
+        FindWeaponComponents();
         
         // Buscar sistema de pausa
         pauseMenu = FindObjectOfType<AutoPauseMenuTool>();
@@ -100,6 +109,38 @@ public class GameUI : MonoBehaviour
             shieldBar = transform.Find("ShieldBar")?.GetComponent<Slider>();
         if (crosshair == null)
             crosshair = transform.Find("Crosshair")?.GetComponent<Image>();
+    }
+    
+    void FindWeaponComponents()
+    {
+        GameObject player = GameObject.FindGameObjectWithTag("Player");
+        
+        if (player != null)
+        {
+            // Buscar GunScript en el jugador y sus hijos
+            playerGun = player.GetComponent<GunScript>();
+            if (playerGun == null)
+            {
+                playerGun = player.GetComponentInChildren<GunScript>();
+            }
+            
+            // Buscar Weapon en el jugador y sus hijos
+            playerWeapon = player.GetComponent<Weapon>();
+            if (playerWeapon == null)
+            {
+                playerWeapon = player.GetComponentInChildren<Weapon>();
+            }
+        }
+        
+        // Fallback: buscar en toda la escena
+        if (playerGun == null)
+        {
+            playerGun = FindObjectOfType<GunScript>();
+        }
+        if (playerWeapon == null)
+        {
+            playerWeapon = FindObjectOfType<Weapon>();
+        }
     }
     
     void SetupHUD()
@@ -130,26 +171,39 @@ public class GameUI : MonoBehaviour
     {
         if (playerGun != null)
         {
-            // Actualizar texto de munición
+            // Usar GunScript (Easy FPS)
             if (ammoText != null)
             {
                 ammoText.text = $"{Mathf.FloorToInt(playerGun.bulletsInTheGun)} / {Mathf.FloorToInt(playerGun.bulletsIHave)}";
             }
             
-            // Actualizar contadores individuales
             if (currentAmmoText != null)
                 currentAmmoText.text = Mathf.FloorToInt(playerGun.bulletsInTheGun).ToString();
             if (totalAmmoText != null)
                 totalAmmoText.text = Mathf.FloorToInt(playerGun.bulletsIHave).ToString();
             
-            // Mostrar/ocultar indicador de recarga
             if (reloadIndicator != null)
             {
                 reloadIndicator.gameObject.SetActive(playerGun.reloading);
             }
             
-            // Actualizar nombre del arma
             UpdateWeaponDisplay();
+        }
+        else if (playerWeapon != null)
+        {
+            // Usar Weapon.cs (script propio)
+            if (ammoText != null)
+            {
+                ammoText.text = $"{playerWeapon.currentAmmo} / {playerWeapon.reserveAmmo}";
+            }
+            
+            if (currentAmmoText != null)
+                currentAmmoText.text = playerWeapon.currentAmmo.ToString();
+            if (totalAmmoText != null)
+                totalAmmoText.text = playerWeapon.reserveAmmo.ToString();
+            
+            if (weaponNameText != null)
+                weaponNameText.text = playerWeapon.weaponName;
         }
     }
     

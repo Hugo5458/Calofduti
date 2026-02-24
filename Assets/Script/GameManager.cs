@@ -24,6 +24,7 @@ public class GameManager : MonoBehaviour
     public GameObject pauseMenu;
     public GameObject gameOverPanel;
     public Text finalScoreText;
+    public WavePanel wavePanel; // Nuevo panel de rondas
     
     [Header("Audio")]
     public AudioClip backgroundMusic;
@@ -34,6 +35,8 @@ public class GameManager : MonoBehaviour
     private bool isPaused = false;
     private bool isGameOver = false;
     private ZombieSpawner spawner;
+    private int zombiesInCurrentWave = 0;
+    private int zombiesKilledInCurrentWave = 0;
     
     void Awake()
     {
@@ -98,6 +101,7 @@ public class GameManager : MonoBehaviour
     public void ZombieKilled()
     {
         zombiesKilled++;
+        zombiesKilledInCurrentWave++;
         
         // Notificar al spawner
         if (spawner != null)
@@ -105,12 +109,66 @@ public class GameManager : MonoBehaviour
             spawner.ZombieDied();
         }
         
+        // Verificar si se completó la oleada
+        CheckWaveCompletion();
+        
         UpdateUI();
+    }
+    
+    /// <summary>
+    /// Verifica si se ha completado la oleada actual
+    /// </summary>
+    void CheckWaveCompletion()
+    {
+        if (spawner != null)
+        {
+            int zombiesAlive = spawner.GetZombiesAlive();
+            
+            // Si no quedan zombies y no hay más por spawnear, la oleada está completa
+            if (zombiesAlive <= 0 && !spawner.IsSpawning())
+            {
+                // Incrementar ronda
+                currentWave++;
+                
+                // Mostrar mensaje de oleada completada
+                if (wavePanel != null)
+                {
+                    wavePanel.ShowCustomPanel($"¡OLEADA {currentWave - 1} COMPLETADA!", 2f);
+                }
+                
+                // Iniciar nueva oleada después de un breve retraso
+                StartCoroutine(StartNextWave());
+            }
+        }
+    }
+    
+    System.Collections.IEnumerator StartNextWave()
+    {
+        yield return new WaitForSeconds(3f); // Esperar 3 segundos
+        
+        // Iniciar nueva oleada
+        NewWave(currentWave);
+        
+        // Notificar al spawner que inicie la siguiente oleada
+        if (spawner != null)
+        {
+            spawner.StartNextWave();
+        }
     }
     
     public void NewWave(int wave)
     {
         currentWave = wave;
+        
+        // Reiniciar contador de zombies de esta oleada
+        zombiesKilledInCurrentWave = 0;
+        zombiesInCurrentWave = spawner != null ? spawner.GetZombiesAlive() : 0;
+        
+        // Mostrar panel de nueva ronda
+        if (wavePanel != null)
+        {
+            wavePanel.ShowWavePanel(currentWave);
+        }
         
         // Aplicar aumento de dificultad
         ApplyDifficultyScaling();
@@ -122,7 +180,6 @@ public class GameManager : MonoBehaviour
         
         UpdateUI();
         
-        // Mostrar notificación de oleada (opcional)
         Debug.Log("¡Oleada " + wave + " comenzando! Dificultad aumentada.");
     }
     

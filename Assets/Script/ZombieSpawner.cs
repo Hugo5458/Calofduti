@@ -52,6 +52,8 @@ public class ZombieSpawner : MonoBehaviour
     private int zombiesAlive = 0;
     private GameManager gameManager;
     private int endlessWaveCount = 0;
+    private bool isSpawning = false;
+    private bool isGameOver = false;
 
     void Start()
     {
@@ -109,6 +111,7 @@ public class ZombieSpawner : MonoBehaviour
 
     IEnumerator SpawnWaveRoutine()
     {
+        isSpawning = true;
         List<WaveEnemyConfig> groupsToSpawn = new List<WaveEnemyConfig>();
         int waveNumberDisplay = currentWaveIndex + 1;
         string waveNameDisplay = "";
@@ -205,6 +208,8 @@ public class ZombieSpawner : MonoBehaviour
         {
             endlessWaveCount++;
         }
+
+        isSpawning = false;
     }
 
     void SpawnEnemy(GameObject prefab)
@@ -348,7 +353,40 @@ public class ZombieSpawner : MonoBehaviour
     /// </summary>
     void EnsureZombieCollision(GameObject enemy)
     {
-        // Asegurar que tiene un Collider para detección
+        // Añadir ZombieAI si no existe
+        ZombieAI zombieAI = enemy.GetComponent<ZombieAI>();
+        if (zombieAI == null)
+        {
+            zombieAI = enemy.AddComponent<ZombieAI>();
+            
+            // Configurar valores por defecto según el tipo de zombie
+            if (enemy.name.ToLower().Contains("ghoul"))
+            {
+                zombieAI.isGhoul = true;
+                zombieAI.damage = 30f;
+                zombieAI.moveSpeed = 5f;
+                zombieAI.maxHealth = 500f;
+            }
+            else
+            {
+                zombieAI.isGhoul = false;
+                zombieAI.damage = 10f;
+                zombieAI.moveSpeed = 3f;
+                zombieAI.maxHealth = 100f;
+            }
+        }
+        
+        // Añadir ZombieHealth si no existe
+        ZombieHealth zombieHealth = enemy.GetComponent<ZombieHealth>();
+        if (zombieHealth == null)
+        {
+            zombieHealth = enemy.AddComponent<ZombieHealth>();
+            zombieHealth.maxHealth = zombieAI.maxHealth;
+            zombieHealth.currentHealth = zombieAI.maxHealth;
+        }
+        
+        // El CharacterController se añade automáticamente en el Initialize() de ZombieAI
+        // pero nos aseguramos que exista un Collider básico para detección
         Collider col = enemy.GetComponent<Collider>();
         if (col == null)
         {
@@ -356,6 +394,7 @@ public class ZombieSpawner : MonoBehaviour
             capsule.center = new Vector3(0f, 1f, 0f);
             capsule.radius = 0.4f;
             capsule.height = 2f;
+            capsule.isTrigger = true; // Para que no interfiera con el CharacterController
         }
     }
 
@@ -392,6 +431,25 @@ public class ZombieSpawner : MonoBehaviour
     public int GetZombiesAlive()
     {
         return zombiesAlive;
+    }
+    
+    /// <summary>
+    /// Verifica si el spawner está actualmente spawnenado zombies
+    /// </summary>
+    public bool IsSpawning()
+    {
+        return isSpawning;
+    }
+    
+    /// <summary>
+    /// Inicia la siguiente oleada manualmente
+    /// </summary>
+    public void StartNextWave()
+    {
+        if (!isSpawning && !isGameOver)
+        {
+            StartCoroutine(SpawnWaveRoutine());
+        }
     }
 
     void OnDrawGizmosSelected()
