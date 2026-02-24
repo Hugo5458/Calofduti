@@ -1795,11 +1795,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   damage: 10
-  attackRate: 1
+  attackRate: 0.25
   detectionRange: 3000
   attackRange: 30
   moveSpeed: 10
   rotationSpeed: 5
+  groundCheckDistance: 2
   separationDistance: 1.2
   separationForce: 2
   player: {fileID: 0}

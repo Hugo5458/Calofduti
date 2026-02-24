@@ -10,6 +10,8 @@ public class BulletScript : MonoBehaviour {
 	public GameObject decalHitWall;
 	[Tooltip("Decal will need to be sligtly infront of the wall so it doesnt cause rendeing problems so for best feel put from 0.01-0.1.")]
 	public float floatInfrontOfWall;
+	[Tooltip("Damage this bullet will cause to enemies")]
+	public float damage = 25f;
 	[Tooltip("Blood prefab particle this bullet will create upoon hitting enemy")]
 	public GameObject bloodEffect;
 	[Tooltip("Put Weapon layer and Player layer to ignore bullet raycast.")]
@@ -30,6 +32,17 @@ public class BulletScript : MonoBehaviour {
 				}
 				if(hit.transform.tag == "Dummie"){
 					Instantiate(bloodEffect, hit.point, Quaternion.LookRotation(hit.normal));
+					Destroy(gameObject);
+				}
+				
+				// Detectar zombies y aplicar daño
+				ZombieHealth zombieHealth = hit.transform.GetComponent<ZombieHealth>();
+				if(zombieHealth != null){
+					zombieHealth.TakeDamage(damage);
+					if(bloodEffect != null){
+						Instantiate(bloodEffect, hit.point, Quaternion.LookRotation(hit.normal));
+					}
+					GunScript.HitMarkerSound();
 					Destroy(gameObject);
 				}
 			}		
