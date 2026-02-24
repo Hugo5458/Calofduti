@@ -169,6 +169,12 @@ public class GunScript : MonoBehaviour {
 
 		float safeAimTime = Mathf.Max(gunAimTime, 0.0001f);
 
+		// Sanitizar vectores de posición que pueden venir corruptos de la escena serializada
+		restPlacePosition = SafeVector3(restPlacePosition, Vector3.zero);
+		aimPlacePosition = SafeVector3(aimPlacePosition, Vector3.zero);
+		currentGunPosition = SafeVector3(currentGunPosition, Vector3.zero);
+		gunPosVelocity = SafeVector3(gunPosVelocity, Vector3.zero);
+
 		/*
 		 * Changing some values if we are aiming, like sensitity, zoom racion and position of the waepon.
 		 */
@@ -194,6 +200,10 @@ public class GunScript : MonoBehaviour {
 			if(secondCamera != null)
 				secondCamera.fieldOfView = Mathf.SmoothDamp(secondCamera.fieldOfView, secondCameraZoomRatio_notAiming, ref secondCameraZoomVelocity, safeAimTime);
 		}
+
+		// Sanitizar resultado después de SmoothDamp
+		currentGunPosition = SafeVector3(currentGunPosition, Vector3.zero);
+		gunPosVelocity = SafeVector3(gunPosVelocity, Vector3.zero);
 
 	}
 
