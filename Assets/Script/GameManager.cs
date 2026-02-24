@@ -11,6 +11,12 @@ public class GameManager : MonoBehaviour
     public int zombiesKilled = 0;
     public int currentWave = 0;
     
+    [Header("Sistema de Dificultad")]
+    public float zombieSpeedIncrease = 0.5f; // Aumento de velocidad por oleada
+    public float zombieDamageIncrease = 2f; // Aumento de daño por oleada
+    public float zombieHealthIncrease = 5f; // Aumento de salud por oleada
+    public int zombiesPerWaveIncrease = 2; // Zombies adicionales por oleada
+    
     [Header("UI")]
     public Text scoreText;
     public Text waveText;
@@ -106,6 +112,9 @@ public class GameManager : MonoBehaviour
     {
         currentWave = wave;
         
+        // Aplicar aumento de dificultad
+        ApplyDifficultyScaling();
+        
         if (waveStartSound != null && audioSource != null)
         {
             audioSource.PlayOneShot(waveStartSound);
@@ -114,7 +123,37 @@ public class GameManager : MonoBehaviour
         UpdateUI();
         
         // Mostrar notificación de oleada (opcional)
-        Debug.Log("¡Oleada " + wave + " comenzando!");
+        Debug.Log("¡Oleada " + wave + " comenzando! Dificultad aumentada.");
+    }
+    
+    /// <summary>
+    /// Aplica el aumento de dificultad a todos los zombies en la escena
+    /// </summary>
+    void ApplyDifficultyScaling()
+    {
+        ZombieAI[] allZombies = FindObjectsOfType<ZombieAI>();
+        ZombieHealth[] allZombieHealth = FindObjectsOfType<ZombieHealth>();
+        
+        foreach (ZombieAI zombie in allZombies)
+        {
+            // Usar el nuevo método para aumentar estadísticas
+            zombie.IncreaseStats(zombieSpeedIncrease, zombieDamageIncrease);
+        }
+        
+        foreach (ZombieHealth health in allZombieHealth)
+        {
+            // Aumentar salud máxima
+            health.maxHealth += zombieHealthIncrease;
+            health.currentHealth = health.maxHealth; // Restaurar salud completa
+        }
+        
+        // Aumentar cantidad de zombies para próximas oleadas
+        if (spawner != null)
+        {
+            spawner.IncreaseWaveDifficulty(zombiesPerWaveIncrease);
+        }
+        
+        Debug.Log($"Dificultad aumentada en oleada {currentWave}: Velocidad +{zombieSpeedIncrease}, Daño +{zombieDamageIncrease}, Salud +{zombieHealthIncrease}, Zombies +{zombiesPerWaveIncrease}");
     }
     
     void UpdateUI()
