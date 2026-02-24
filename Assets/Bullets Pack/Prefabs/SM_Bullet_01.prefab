@@ -9,6 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2787594106011184721}
+  - component: {fileID: -3545996550290674572}
   m_Layer: 0
   m_Name: SM_Bullet_01
   m_TagString: Untagged
@@ -32,6 +33,26 @@ Transform:
   - {fileID: 6965400757647036215}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &-3545996550290674572
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2086261179823682334}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 15e3d39d01a5946499fa8b6b5dc1b00f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  maxDistance: 1000000
+  decalHitWall: {fileID: 0}
+  floatInfrontOfWall: 0
+  damage: 25
+  bloodEffect: {fileID: 0}
+  ignoreLayer:
+    serializedVersion: 2
+    m_Bits: 0
 --- !u!1 &8155758887353419079
 GameObject:
   m_ObjectHideFlags: 0

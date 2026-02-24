@@ -1796,8 +1796,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   damage: 10
   attackRate: 0.25
+  maxHealth: 100
   detectionRange: 3000
-  attackRange: 5
+  attackRange: 2.5
   moveSpeed: 10
   rotationSpeed: 5
   gravity: -15
@@ -1806,6 +1807,7 @@ MonoBehaviour:
   obstacleDetectionRange: 2.5
   obstacleAvoidanceForce: 5
   player: {fileID: 0}
+  isGhoul: 0
   attackSounds: []
 --- !u!114 &-5639316477399819704
 MonoBehaviour:
