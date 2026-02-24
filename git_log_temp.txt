@@ -1,0 +1,20 @@
+ 098c5d4 Hugo5458 2026-02-24 Merge pull request #19 from Hugo5458/main
+ 0fb105a Hugo5458 2026-02-24 ssz
+ 54b36e4 Hugo5458 2026-02-24 Merge pull request #18 from Hugo5458/main
+ c2ff5aa Hugo5458 2026-02-24 Merge branch 'main' of https://github.com/Hugo5458/Calofduti
+ 06801ab Hugo5458 2026-02-24 xc
+ ffde05b Hugo5458 2026-02-24 Merge pull request #17 from Hugo5458/main
+ f4c8512 Hugo5458 2026-02-24 sdas
+ 7e1d010 Hugo5458 2026-02-24 Merge pull request #16 from Hugo5458/main
+ d502c33 Hugo5458 2026-02-24 assa
+ 03dbceb Luis blanco 2026-02-24 camboio
+ 7648048 Luis blanco 2026-02-24 cambios
+ cd88398 Hugo5458 2026-02-24 Merge branch 'main' of https://github.com/Hugo5458/Calofduti
+ 8277e1f Hugo5458 2026-02-24 df
+ 6bcfc35 Hugo5458 2026-02-24 Fixed merge conflicts in SampleScene.unity
+ a8d47bf Luis blanco 2026-02-24 feat: Add AutoPauseMenuTool script.
+ aaa07c3 Luis blanco 2026-02-24 cambio
+ 2f4105d Luis blanco 2026-02-24 cambios
+ c4b0807 Hugo5458 2026-02-24 Merge pull request #15 from Hugo5458/main
+ d36848a Luis blanco 2026-02-24 arreglar
+ 8d78120 Luis blanco 2026-02-24 cambios

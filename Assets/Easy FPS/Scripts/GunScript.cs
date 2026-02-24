@@ -319,40 +319,59 @@ public class GunScript : MonoBehaviour {
 	 * Calculatin the weapon position accordingly to the player position and rotation.
 	 * After calculation the recoil amount are decreased to 0.
 	 */
+	// Helper para sanitizar un float — reemplaza NaN/Infinity por un valor seguro
+	static float SafeFloat(float val, float fallback = 0f)
+	{
+		return (float.IsNaN(val) || float.IsInfinity(val)) ? fallback : val;
+	}
+
+	// Helper para sanitizar un Vector3
+	static Vector3 SafeVector3(Vector3 v, Vector3 fallback)
+	{
+		if (float.IsNaN(v.x) || float.IsNaN(v.y) || float.IsNaN(v.z) ||
+			float.IsInfinity(v.x) || float.IsInfinity(v.y) || float.IsInfinity(v.z))
+			return fallback;
+		return v;
+	}
+
 	void PositionGun(){
 		if (mainCamera == null || pmS == null) return;
 
+		Vector3 camPos = mainCamera.transform.position;
+
+		// Sanitizar currentGunPosition (puede venir corrupto de FixedUpdate o de la escena)
+		currentGunPosition.x = SafeFloat(currentGunPosition.x);
+		currentGunPosition.y = SafeFloat(currentGunPosition.y);
+		currentGunPosition.z = SafeFloat(currentGunPosition.z);
+
+		// Sanitizar recoil
+		currentRecoilXPos = SafeFloat(currentRecoilXPos);
+		currentRecoilYPos = SafeFloat(currentRecoilYPos);
+		currentRecoilZPos = SafeFloat(currentRecoilZPos);
+
 		// Calcular posición objetivo del arma
-		Vector3 targetPos = mainCamera.transform.position  - 
+		Vector3 targetPos = camPos  - 
 			(mainCamera.transform.right * (currentGunPosition.x + currentRecoilXPos)) + 
 			(mainCamera.transform.up * (currentGunPosition.y + currentRecoilYPos)) + 
 			(mainCamera.transform.forward * (currentGunPosition.z + currentRecoilZPos));
 
-		// Protección contra NaN — si el cálculo o la posición actual son NaN, resetear
-		if (float.IsNaN(targetPos.x) || float.IsNaN(targetPos.y) || float.IsNaN(targetPos.z))
-		{
-			targetPos = mainCamera.transform.position;
-			velV = Vector3.zero;
-		}
-		if (float.IsNaN(transform.position.x) || float.IsNaN(transform.position.y) || float.IsNaN(transform.position.z))
-		{
-			transform.position = mainCamera.transform.position;
-			velV = Vector3.zero;
-		}
-		if (float.IsNaN(velV.x) || float.IsNaN(velV.y) || float.IsNaN(velV.z))
-		{
-			velV = Vector3.zero;
-		}
+		// Validación final del resultado
+		targetPos = SafeVector3(targetPos, camPos);
 
-		// Posicionar el arma directamente en el objetivo (smoothTime original era 0, o sea instantáneo)
+		// Asignar posición de forma segura
 		transform.position = targetPos;
 
 		pmS.cameraPosition = new Vector3(currentRecoilXPos, currentRecoilYPos, 0);
 
+		// Decay del recoil
 		currentRecoilZPos = Mathf.SmoothDamp(currentRecoilZPos, 0, ref velocity_z_recoil, Mathf.Max(recoilOverTime_z, 0.001f));
 		currentRecoilXPos = Mathf.SmoothDamp(currentRecoilXPos, 0, ref velocity_x_recoil, Mathf.Max(recoilOverTime_x, 0.001f));
 		currentRecoilYPos = Mathf.SmoothDamp(currentRecoilYPos, 0, ref velocity_y_recoil, Mathf.Max(recoilOverTime_y, 0.001f));
 
+		// Sanitizar resultados del SmoothDamp de recoil
+		currentRecoilXPos = SafeFloat(currentRecoilXPos);
+		currentRecoilYPos = SafeFloat(currentRecoilYPos);
+		currentRecoilZPos = SafeFloat(currentRecoilZPos);
 	}
 
 
