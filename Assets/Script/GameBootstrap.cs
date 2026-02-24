@@ -96,17 +96,16 @@ public class GameBootstrap : MonoBehaviour
     
     void SetupHUD()
     {
-        // Asegurar que existe el PlayerHUD
-        PlayerHUD existingHUD = FindObjectOfType<PlayerHUD>();
+        AutoHUDTool existingHUD = FindObjectOfType<AutoHUDTool>();
         if (existingHUD == null)
         {
-            GameObject hudObj = new GameObject("PlayerHUD_Manager");
-            hudObj.AddComponent<PlayerHUD>();
-            Debug.Log("[GameBootstrap] ✅ PlayerHUD creado automáticamente.");
+            GameObject hudObj = new GameObject("AutoHUD_Tool_Manager");
+            hudObj.AddComponent<AutoHUDTool>();
+            Debug.Log("[GameBootstrap] ✅ AutoHUDTool (Tool Profesional) creado automáticamente.");
         }
         else
         {
-            Debug.Log("[GameBootstrap] ✅ PlayerHUD ya existe.");
+            Debug.Log("[GameBootstrap] ✅ AutoHUDTool ya existe.");
         }
     }
     
