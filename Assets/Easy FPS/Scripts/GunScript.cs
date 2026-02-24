@@ -555,6 +555,9 @@ public class GunScript : MonoBehaviour {
 			Vector3 shootOrigin = mainCamera != null ? mainCamera.position : transform.position;
 			Vector3 shootDirection = mainCamera != null ? mainCamera.forward : transform.forward;
 			
+			Debug.Log($"=== [DISPARO] === Origen: {shootOrigin}, Dirección: {shootDirection}");
+			Debug.Log($"=== [DISPARO] === mainCamera null? {mainCamera == null}, Layer del arma: {gameObject.layer} ({LayerMask.LayerToName(gameObject.layer)})");
+			
 			// Añadir dispersión basada en gunPrecision
 			float spread = (1f - gunPrecision) * 0.02f;
 			shootDirection += new Vector3(
@@ -569,9 +572,29 @@ public class GunScript : MonoBehaviour {
 			
 			// Ignorar la capa del arma y del jugador
 			int layerMask = ~(LayerMask.GetMask("Ignore Raycast") | (1 << gameObject.layer));
+			Debug.Log($"=== [DISPARO] === LayerMask: {layerMask}");
 			
 			if (Physics.Raycast(shootOrigin, shootDirection, out hitInfo, maxRange, layerMask))
 			{
+				Debug.Log($"★★★ [DISPARO HIT] ★★★ Golpeó: '{hitInfo.collider.gameObject.name}' a distancia: {hitInfo.distance:F2}m");
+				Debug.Log($"★★★ [DISPARO HIT] ★★★ Layer: {hitInfo.collider.gameObject.layer} ({LayerMask.LayerToName(hitInfo.collider.gameObject.layer)}), Tag: {hitInfo.collider.tag}");
+				Debug.Log($"★★★ [DISPARO HIT] ★★★ Posición impacto: {hitInfo.point}");
+				
+				// Listar TODOS los componentes del objeto golpeado
+				Component[] allComponents = hitInfo.collider.GetComponents<Component>();
+				string componentList = "";
+				foreach(Component c in allComponents) { if(c != null) componentList += c.GetType().Name + ", "; }
+				Debug.Log($"★★★ [DISPARO HIT] ★★★ Componentes en objeto: [{componentList}]");
+				
+				// También listar componentes del PADRE
+				if (hitInfo.collider.transform.parent != null)
+				{
+					Component[] parentComponents = hitInfo.collider.transform.parent.GetComponents<Component>();
+					string parentList = "";
+					foreach(Component c in parentComponents) { if(c != null) parentList += c.GetType().Name + ", "; }
+					Debug.Log($"★★★ [DISPARO HIT] ★★★ Componentes en PADRE '{hitInfo.collider.transform.parent.name}': [{parentList}]");
+				}
+				
 				// Calcular daño base
 				float bulletDamage = 25f;
 				if (bullet != null)
@@ -579,54 +602,71 @@ public class GunScript : MonoBehaviour {
 					BulletScript bs = bullet.GetComponent<BulletScript>();
 					if (bs != null) bulletDamage = bs.damage;
 				}
+				Debug.Log($"★★★ [DISPARO] ★★★ Daño de bala: {bulletDamage}");
 				
 				bool hitTarget = false;
 				
-				// 1. Verificar si golpeamos un ZombieHitbox (hitbox de parte del cuerpo)
+				// 1. Verificar si golpeamos un ZombieHitbox
 				ZombieHitbox hitbox = hitInfo.collider.GetComponent<ZombieHitbox>();
 				if (hitbox == null) hitbox = hitInfo.collider.GetComponentInParent<ZombieHitbox>();
+				Debug.Log($"★★★ [DISPARO] ★★★ ZombieHitbox encontrado? {hitbox != null}");
 				
 				if (hitbox != null)
 				{
 					hitbox.TakeDamage(bulletDamage);
 					hitTarget = true;
 					string hitType = hitbox.hitboxType == ZombieHitbox.HitboxType.Head ? "HEADSHOT!" : hitbox.hitboxType.ToString();
-					Debug.Log($"[GunScript] {hitType} zombie: {hitInfo.collider.name} for {bulletDamage * hitbox.damageMultiplier} damage");
+					Debug.Log($"★★★ [DISPARO ZOMBIE HITBOX] ★★★ {hitType} en '{hitInfo.collider.name}' por {bulletDamage * hitbox.damageMultiplier} daño");
 				}
 				
-				// 2. Verificar ZombieHealth directamente (zombie sin hitbox individual)
+				// 2. Verificar ZombieHealth directamente
 				if (!hitTarget)
 				{
 					ZombieHealth zombieHP = hitInfo.collider.GetComponent<ZombieHealth>();
-					if (zombieHP == null) zombieHP = hitInfo.collider.GetComponentInParent<ZombieHealth>();
-					if (zombieHP == null) zombieHP = hitInfo.collider.GetComponentInChildren<ZombieHealth>();
+					Debug.Log($"★★★ [DISPARO] ★★★ ZombieHealth en collider? {zombieHP != null}");
+					if (zombieHP == null) 
+					{
+						zombieHP = hitInfo.collider.GetComponentInParent<ZombieHealth>();
+						Debug.Log($"★★★ [DISPARO] ★★★ ZombieHealth en PADRE? {zombieHP != null}");
+					}
+					if (zombieHP == null) 
+					{
+						zombieHP = hitInfo.collider.GetComponentInChildren<ZombieHealth>();
+						Debug.Log($"★★★ [DISPARO] ★★★ ZombieHealth en HIJOS? {zombieHP != null}");
+					}
 					
 					if (zombieHP != null && !zombieHP.IsDead())
 					{
+						Debug.Log($"★★★ [DISPARO ZOMBIE] ★★★ ¡DAÑO! '{hitInfo.collider.name}' vida antes: {zombieHP.currentHealth}/{zombieHP.maxHealth}");
 						zombieHP.TakeDamage(bulletDamage);
+						Debug.Log($"★★★ [DISPARO ZOMBIE] ★★★ Vida después: {zombieHP.currentHealth}/{zombieHP.maxHealth}");
 						hitTarget = true;
-						Debug.Log($"[GunScript] Hit zombie: {hitInfo.collider.name} for {bulletDamage} damage");
+					}
+					else if (zombieHP != null && zombieHP.IsDead())
+					{
+						Debug.Log($"★★★ [DISPARO] ★★★ Zombie está MUERTO, ignorando");
 					}
 				}
 				
-				// 3. Verificar SimpleZombie (versión simplificada sin ZombieHealth)
+				// 3. Verificar SimpleZombie
 				if (!hitTarget)
 				{
 					SimpleZombie simpleZ = hitInfo.collider.GetComponent<SimpleZombie>();
 					if (simpleZ == null) simpleZ = hitInfo.collider.GetComponentInParent<SimpleZombie>();
+					Debug.Log($"★★★ [DISPARO] ★★★ SimpleZombie encontrado? {simpleZ != null}");
 					
 					if (simpleZ != null)
 					{
 						simpleZ.TakeDamage(bulletDamage);
 						hitTarget = true;
-						Debug.Log($"[GunScript] Hit SimpleZombie: {hitInfo.collider.name} for {bulletDamage} damage");
+						Debug.Log($"★★★ [DISPARO SIMPLE ZOMBIE] ★★★ ¡DAÑO! a '{hitInfo.collider.name}'");
 					}
 				}
 				
-				// Efectos de impacto según si fue zombie o no
+				// Efectos de impacto
 				if (hitTarget)
 				{
-					// Efecto de sangre
+					Debug.Log($"✅ [DISPARO] ¡ZOMBIE GOLPEADO CON ÉXITO!");
 					if (bullet != null)
 					{
 						BulletScript bs = bullet.GetComponent<BulletScript>();
@@ -639,7 +679,8 @@ public class GunScript : MonoBehaviour {
 				}
 				else
 				{
-					// Impacto en pared/suelo — crear decal
+					Debug.Log($"❌ [DISPARO] No era zombie. Golpeó: '{hitInfo.collider.gameObject.name}' (tag: {hitInfo.collider.tag})");
+					// Impacto en pared/suelo
 					if (bullet != null)
 					{
 						BulletScript bs = bullet.GetComponent<BulletScript>();
@@ -648,10 +689,14 @@ public class GunScript : MonoBehaviour {
 							try {
 								if (hitInfo.collider.CompareTag("LevelPart"))
 									Instantiate(bs.decalHitWall, hitInfo.point + hitInfo.normal * 0.01f, Quaternion.LookRotation(hitInfo.normal));
-							} catch (System.Exception) { /* Tag no definido, ignorar */ }
+							} catch (System.Exception) { }
 						}
 					}
 				}
+			}
+			else
+			{
+				Debug.Log($"❌ [DISPARO] Raycast NO golpeó NADA. Origen: {shootOrigin}, Dir: {shootDirection}");
 			}
 
 			// Spawn bala visual (si existe bulletSpawnPlace)

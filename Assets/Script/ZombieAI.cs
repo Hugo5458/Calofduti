@@ -188,8 +188,6 @@ public class ZombieAI : MonoBehaviour
             
             Vector3 gravityMove = new Vector3(0f, verticalVelocity * Time.deltaTime, 0f);
             characterController.Move(gravityMove);
-            
-            Debug.Log($"[ZombieAI] {gameObject.name} in attack range (distance: {distanceToPlayer:F2})");
         }
         else if (distanceToPlayer <= detectionRange)
         {
@@ -307,31 +305,25 @@ public class ZombieAI : MonoBehaviour
         return separation;
     }
     
+    private PlayerHealth cachedPlayerHealth;
+    private bool isAttacking = false;
+    
     void Attack()
     {
         if (Time.time < nextAttackTime) return;
+        if (isAttacking) return;
         
         nextAttackTime = Time.time + attackRate;
         
-        Debug.Log($"[ZombieAI] {gameObject.name} attacking player at distance {Vector3.Distance(transform.position, player.position)}");
-        
         // Reproducir animación de ataque
-        if (animator != null && animator.enabled)
-        {
-            animator.SetTrigger("Attack");
-            Debug.Log("[ZombieAI] Attack trigger sent to Animator");
-        }
-        else
-        {
-            Debug.LogWarning($"[ZombieAI] {gameObject.name}: Animator is null or disabled");
-        }
-        
-        // También intentar con GhoulAnimationController si existe
         GhoulAnimationController ghoulAnimator = GetComponent<GhoulAnimationController>();
         if (ghoulAnimator != null)
         {
             ghoulAnimator.PlayAttackAnimation();
-            Debug.Log("[ZombieAI] Attack animation sent to GhoulAnimationController");
+        }
+        else if (animator != null && animator.enabled)
+        {
+            animator.SetTrigger("Attack");
         }
         
         // Reproducir sonido de ataque
@@ -341,38 +333,57 @@ public class ZombieAI : MonoBehaviour
             audioSource.PlayOneShot(attackSounds[randomSound]);
         }
         
-        // VERIFICAR distancia real antes de aplicar daño
-        // Solo hace daño si está realmente cerca (distancia de golpe)
-        if (player != null)
+        // Aplicar daño con DELAY para que coincida con la animación del golpe
+        isAttacking = true;
+        StartCoroutine(DelayedDamage());
+    }
+    
+    System.Collections.IEnumerator DelayedDamage()
+    {
+        // Esperar a que la animación de ataque llegue al momento del impacto
+        yield return new WaitForSeconds(0.5f);
+        
+        isAttacking = false;
+        
+        if (player == null) yield break;
+        
+        // Verificar distancia REAL en el momento del golpe (no cuando empezó la animación)
+        float hitRange = attackRange * 0.85f; // Rango de golpe real es menor que rango de inicio de ataque
+        float realDistance = Vector3.Distance(transform.position, player.position);
+        
+        if (realDistance > hitRange)
         {
-            float realDistance = Vector3.Distance(transform.position, player.position);
-            Debug.Log($"[ZombieAI] Real distance to player: {realDistance}, Attack range: {attackRange}");
-            
-            if (realDistance <= attackRange)
+            // El jugador se alejó — el golpe falla
+            yield break;
+        }
+        
+        // Verificar línea de visión — que no haya otro zombie u obstáculo bloqueando
+        Vector3 dirToPlayer = (player.position - transform.position).normalized;
+        RaycastHit losHit;
+        float checkDist = realDistance;
+        
+        if (Physics.Raycast(transform.position + Vector3.up, dirToPlayer, out losHit, checkDist + 0.5f))
+        {
+            // Si el raycast golpea algo que NO es el jugador, el golpe es bloqueado
+            if (!losHit.transform.CompareTag("Player") && 
+                losHit.transform.GetComponent<PlayerHealth>() == null &&
+                losHit.transform.GetComponentInParent<PlayerHealth>() == null)
             {
-                PlayerHealth playerHealth = player.GetComponentInChildren<PlayerHealth>();
-                if (playerHealth == null)
-                {
-                    playerHealth = player.GetComponent<PlayerHealth>();
-                }
-                if (playerHealth != null)
-                {
-                    Debug.Log($"[ZombieAI] Applying {damage} damage to player");
-                    playerHealth.TakeDamage(damage);
-                }
-                else
-                {
-                    Debug.LogError("[ZombieAI] PlayerHealth component not found on player!");
-                }
-            }
-            else
-            {
-                Debug.Log("[ZombieAI] Player too far to attack");
+                yield break; // Bloqueado por obstáculo u otro zombie
             }
         }
-        else
+        
+        // Buscar PlayerHealth (usar caché para rendimiento)
+        if (cachedPlayerHealth == null)
         {
-            Debug.LogError("[ZombieAI] Player reference is null!");
+            cachedPlayerHealth = player.GetComponent<PlayerHealth>();
+            if (cachedPlayerHealth == null)
+                cachedPlayerHealth = player.GetComponentInChildren<PlayerHealth>();
+        }
+        
+        if (cachedPlayerHealth != null && !cachedPlayerHealth.IsDead())
+        {
+            cachedPlayerHealth.TakeDamage(damage);
         }
     }
     
