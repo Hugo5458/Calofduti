@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.UI;
 using System.Collections;
 //using UnityStandardAssets.ImageEffects;
 
@@ -37,29 +38,74 @@ public class GunScript : MonoBehaviour {
 	 */
 	void Awake(){
 
-
-		mls = GameObject.FindGameObjectWithTag("Player").GetComponent<MouseLookScript>();
-		player = mls.transform;
-		mainCamera = mls.myCamera;
+		// Buscar componente MouseLookScript con validación nula
+		GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+		if (playerObj != null)
+		{
+			mls = playerObj.GetComponent<MouseLookScript>();
+			if (mls != null)
+			{
+				player = mls.transform;
+				mainCamera = mls.myCamera;
+			}
+			else
+			{
+				Debug.LogError("No se encontró MouseLookScript en el objeto Player");
+				return;
+			}
+		}
+		else
+		{
+			Debug.LogError("No se encontró objeto con tag 'Player'");
+			return;
+		}
 		
+		// Buscar segunda cámara con validación
 		GameObject secondCamObj = GameObject.FindGameObjectWithTag("SecondCamera");
 		if(secondCamObj != null)
 			secondCamera = secondCamObj.GetComponent<Camera>();
 		else
 			secondCamera = null;
 		
-		cameraComponent = mainCamera.GetComponent<Camera>();
-		pmS = player.GetComponent<PlayerMovementScript>();
+		if (mainCamera != null)
+			cameraComponent = mainCamera.GetComponent<Camera>();
+		else
+		{
+			Debug.LogError("mainCamera es nulo");
+			return;
+		}
+		
+		if (player != null)
+			pmS = player.GetComponent<PlayerMovementScript>();
+		else
+		{
+			Debug.LogError("player es nulo");
+			return;
+		}
 
-		bulletSpawnPlace = GameObject.FindGameObjectWithTag("BulletSpawn");
-		hitMarker = transform.Find ("hitMarkerSound").GetComponent<AudioSource> ();
+		// Buscar punto de spawn de balas con validación
+		GameObject bulletSpawnObj = GameObject.FindGameObjectWithTag("BulletSpawn");
+		if (bulletSpawnObj != null)
+			bulletSpawnPlace = bulletSpawnObj;
+		else
+			Debug.LogWarning("No se encontró objeto con tag 'BulletSpawn'");
+		
+		// Buscar sonido de hit marker con validación
+		Transform hitMarkerTransform = transform.Find("hitMarkerSound");
+		if (hitMarkerTransform != null)
+			hitMarker = hitMarkerTransform.GetComponent<AudioSource>();
+		else
+			Debug.LogWarning("No se encontró hitMarkerSound como hijo del objeto");
 
 		startLook = mouseSensitvity_notAiming;
 		startAim = mouseSensitvity_aiming;
 		startRun = mouseSensitvity_running;
 
-		rotationLastY = mls.currentYRotation;
-		rotationLastX= mls.currentCameraXRotation;
+		if (mls != null)
+		{
+			rotationLastY = mls.currentYRotation;
+			rotationLastX= mls.currentCameraXRotation;
+		}
 
 	}
 
@@ -413,7 +459,10 @@ public class GunScript : MonoBehaviour {
 	* Sounds that is called upon hitting the target.
 	*/
 	public static void HitMarkerSound(){
-		hitMarker.Play();
+		if (hitMarker != null)
+			hitMarker.Play();
+		else
+			Debug.LogWarning("hitMarker AudioSource is null");
 	}
 
 	[Tooltip("Array of muzzel flashes, randmly one will appear after each bullet.")]
@@ -422,42 +471,47 @@ public class GunScript : MonoBehaviour {
 	public GameObject muzzelSpawn;
 	private GameObject holdFlash;
 	private GameObject holdSmoke;
-	/*
-	 * Called from Shooting();
-	 * Creates bullets and muzzle flashes and calls for Recoil.
-	 */
-	private void ShootMethod(){
-		if(waitTillNextFire <= 0 && !reloading && pmS.maxSpeed < 5){
 
-			if(bulletsInTheGun > 0){
+	void ShootMethod()
+	{
+		if(waitTillNextFire > 0) return;
+		waitTillNextFire = 1;
 
-				int randomNumberForMuzzelFlash = Random.Range(0,5);
-				if (bullet)
-					Instantiate (bullet, bulletSpawnPlace.transform.position, bulletSpawnPlace.transform.rotation);
-				else
-					print ("Missing the bullet prefab");
-				holdFlash = Instantiate(muzzelFlash[randomNumberForMuzzelFlash], muzzelSpawn.transform.position /*- muzzelPosition*/, muzzelSpawn.transform.rotation * Quaternion.Euler(0,0,90) ) as GameObject;
-				holdFlash.transform.parent = muzzelSpawn.transform;
-				if (shoot_sound_source)
-					shoot_sound_source.Play ();
-				else
-					print ("Missing 'Shoot Sound Source'.");
+		if(bulletsInTheGun > 0){
+			bulletsInTheGun--;
 
-				RecoilMath();
+			RecoilMath();
 
-				waitTillNextFire = 1;
-				bulletsInTheGun -= 1;
-			}
+			if(shoot_sound_source != null)
+				shoot_sound_source.Play();
+
+			// Validar que el array muzzelFlash tenga elementos
+			if (muzzelFlash != null && muzzelFlash.Length > 0)
+			{
+				int randomNumberForMuzzelFlash = Random.Range(0, muzzelFlash.Length);
 				
-			else{
-				//if(!aiming)
-				StartCoroutine("Reload_Animation");
-				//if(emptyClip_sound_source)
-				//	emptyClip_sound_source.Play();
+				if (bullet && bulletSpawnPlace != null)
+					Instantiate (bullet, bulletSpawnPlace.transform.position, bulletSpawnPlace.transform.rotation);
+				else if (bullet == null)
+					Debug.LogWarning("Missing bullet prefab");
+				else if (bulletSpawnPlace == null)
+					Debug.LogWarning("Missing bulletSpawnPlace");
+				
+				if (muzzelSpawn != null && muzzelFlash[randomNumberForMuzzelFlash] != null)
+				{
+					holdFlash = Instantiate(muzzelFlash[randomNumberForMuzzelFlash], muzzelSpawn.transform.position, muzzelSpawn.transform.rotation * Quaternion.Euler(0,0,90)) as GameObject;
+					if (holdFlash != null && muzzelSpawn != null)
+						holdFlash.transform.parent = muzzelSpawn.transform;
+				}
 			}
-
+			else
+			{
+				Debug.LogWarning("muzzelFlash array is null or empty");
+			}
 		}
-
+		else if(!reloading){
+			StartCoroutine("Reload_Animation");
+		}
 	}
 
 
@@ -521,17 +575,19 @@ public class GunScript : MonoBehaviour {
 	 * And drawing CrossHair from here.
 	 */
 	[Tooltip("HUD bullets to display bullet count on screen. Will be find under name 'HUD_bullets' in scene.")]
-	public TextMesh HUD_bullets;
+	public Text HUD_bullets;
 	void OnGUI(){
 		if(!HUD_bullets){
 			try{
-				HUD_bullets = GameObject.Find("HUD_bullets").GetComponent<TextMesh>();
+				GameObject hudObj = GameObject.Find("HUD_bullets");
+				if (hudObj != null)
+					HUD_bullets = hudObj.GetComponent<Text>();
 			}
 			catch(System.Exception ex){
-				print("Couldnt find the HUD_Bullets ->" + ex.StackTrace.ToString());
+				Debug.LogWarning("Couldnt find the HUD_Bullets ->" + ex.Message);
 			}
 		}
-		if(mls && HUD_bullets)
+		if(mls != null && HUD_bullets != null)
 			HUD_bullets.text = bulletsIHave.ToString() + " - " + bulletsInTheGun.ToString();
 
 		DrawCrosshair();
@@ -580,9 +636,14 @@ public class GunScript : MonoBehaviour {
 	private Vector2 vec2(Vector2 _vec2){
 		return new Vector2(Screen.width * _vec2.x / 100, Screen.height * _vec2.y / 100);
 	}
-	//#
 
+	[Header("Animation")]
 	public Animator handsAnimator;
+	[Header("Animation names")]
+	public string reloadAnimationName = "Player_Reload";
+	public string aimingAnimationName = "Player_AImpose";
+	public string meeleAnimationName = "Character_Malee";
+	
 	/*
 	* Fetching if any current animation is running.
 	* Setting the reload animation upon pressing R.
@@ -602,9 +663,4 @@ public class GunScript : MonoBehaviour {
 		}
 
 	}
-
-	[Header("Animation names")]
-	public string reloadAnimationName = "Player_Reload";
-	public string aimingAnimationName = "Player_AImpose";
-	public string meeleAnimationName = "Character_Malee";
 }

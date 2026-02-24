@@ -61,6 +61,27 @@ public class MouseLookScript : MonoBehaviour {
 	public float mouseSensitvity_notAiming = 300;
 	[HideInInspector]
 	public float mouseSensitvity_aiming = 50;
+	
+	// Constantes para sensibilidad
+	private const float SENSIBILIDAD_MINIMA = 0.5f;
+	private const float SENSIBILIDAD_MAXIMA = 10f;
+	private const float SENSIBILIDAD_DEFECTO = 2f;
+	
+	void Start()
+	{
+		// Cargar sensibilidad guardada desde PlayerPrefs
+		CargarSensibilidadGuardada();
+	}
+	
+	void CargarSensibilidadGuardada()
+	{
+		float sensibilidadGuardada = PlayerPrefs.GetFloat("MouseSensitivity", SENSIBILIDAD_DEFECTO);
+		sensibilidadGuardada = Mathf.Clamp(sensibilidadGuardada, SENSIBILIDAD_MINIMA, SENSIBILIDAD_MAXIMA);
+		
+		// Aplicar sensibilidad guardada a ambos modos
+		mouseSensitvity_notAiming = sensibilidadGuardada * 150f; // Escalar para mantener compatibilidad
+		mouseSensitvity_aiming = sensibilidadGuardada * 75f; // Escalar para mantener compatibilidad
+	}
 
 /*
 * FixedUpdate()
@@ -74,7 +95,7 @@ void FixedUpdate(){
 	if(Input.GetAxis("Fire2") != 0){
 		mouseSensitvity = mouseSensitvity_aiming;
 	}
-	else if(GetComponent<PlayerMovementScript>().maxSpeed > 5){
+	else if(GetComponent<PlayerMovementScript>() != null && GetComponent<PlayerMovementScript>().maxSpeed > 5){
 		mouseSensitvity = mouseSensitvity_notAiming;
 	}
 	else{
