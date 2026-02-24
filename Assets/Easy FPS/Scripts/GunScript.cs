@@ -312,19 +312,19 @@ public class GunScript : MonoBehaviour {
 	 * After calculation the recoil amount are decreased to 0.
 	 */
 	void PositionGun(){
+		if (mainCamera == null || pmS == null) return;
+
 		transform.position = Vector3.SmoothDamp(transform.position,
 			mainCamera.transform.position  - 
 			(mainCamera.transform.right * (currentGunPosition.x + currentRecoilXPos)) + 
 			(mainCamera.transform.up * (currentGunPosition.y+ currentRecoilYPos)) + 
-			(mainCamera.transform.forward * (currentGunPosition.z + currentRecoilZPos)),ref velV, 0);
-
-
+			(mainCamera.transform.forward * (currentGunPosition.z + currentRecoilZPos)),ref velV, 0.0001f);
 
 		pmS.cameraPosition = new Vector3(currentRecoilXPos,currentRecoilYPos, 0);
 
-		currentRecoilZPos = Mathf.SmoothDamp(currentRecoilZPos, 0, ref velocity_z_recoil, recoilOverTime_z);
-		currentRecoilXPos = Mathf.SmoothDamp(currentRecoilXPos, 0, ref velocity_x_recoil, recoilOverTime_x);
-		currentRecoilYPos = Mathf.SmoothDamp(currentRecoilYPos, 0, ref velocity_y_recoil, recoilOverTime_y);
+		currentRecoilZPos = Mathf.SmoothDamp(currentRecoilZPos, 0, ref velocity_z_recoil, Mathf.Max(recoilOverTime_z, 0.0001f));
+		currentRecoilXPos = Mathf.SmoothDamp(currentRecoilXPos, 0, ref velocity_x_recoil, Mathf.Max(recoilOverTime_x, 0.0001f));
+		currentRecoilYPos = Mathf.SmoothDamp(currentRecoilYPos, 0, ref velocity_y_recoil, Mathf.Max(recoilOverTime_y, 0.0001f));
 
 	}
 
@@ -347,6 +347,7 @@ public class GunScript : MonoBehaviour {
 	* Calculating the forawrd rotation like in Call Of Duty weapon weight
 	*/
 	void RotationGun(){
+		if (mls == null) return;
 
 		rotationDeltaY = mls.currentYRotation - rotationLastY;
 		rotationDeltaX = mls.currentCameraXRotation - rotationLastX;
@@ -357,8 +358,9 @@ public class GunScript : MonoBehaviour {
 		angularVelocityY = Mathf.Lerp (angularVelocityY, rotationDeltaY, Time.deltaTime * 5);
 		angularVelocityX = Mathf.Lerp (angularVelocityX, rotationDeltaX, Time.deltaTime * 5);
 
-		gunWeightX = Mathf.SmoothDamp (gunWeightX, mls.currentCameraXRotation, ref velocityGunRotate.x, rotationLagTime);
-		gunWeightY = Mathf.SmoothDamp (gunWeightY, mls.currentYRotation, ref velocityGunRotate.y, rotationLagTime);
+		float safeLagTime = Mathf.Max(rotationLagTime, 0.0001f);
+		gunWeightX = Mathf.SmoothDamp (gunWeightX, mls.currentCameraXRotation, ref velocityGunRotate.x, safeLagTime);
+		gunWeightY = Mathf.SmoothDamp (gunWeightY, mls.currentYRotation, ref velocityGunRotate.y, safeLagTime);
 
 		transform.rotation = Quaternion.Euler (gunWeightX + (angularVelocityX*forwardRotationAmount.x), gunWeightY + (angularVelocityY*forwardRotationAmount.y), 0);
 	}
