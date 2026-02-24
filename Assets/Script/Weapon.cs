@@ -142,11 +142,20 @@ public class Weapon : MonoBehaviour
         {
             Debug.Log("Impacto en: " + hit.transform.name);
             
-            // Aplicar daño al zombie
-            ZombieHealth zombie = hit.transform.GetComponent<ZombieHealth>();
-            if (zombie != null)
+            // Intentar obtener ZombieHitbox (partes del cuerpo)
+            ZombieHitbox hitbox = hit.transform.GetComponent<ZombieHitbox>();
+            if (hitbox != null)
             {
-                zombie.TakeDamage(damage);
+                hitbox.TakeDamage(damage);
+            }
+            else
+            {
+                // Si no tiene hitbox, buscar ZombieHealth directamente (en el objeto o sus padres)
+                ZombieHealth zombie = hit.transform.GetComponentInParent<ZombieHealth>();
+                if (zombie != null)
+                {
+                    zombie.TakeDamage(damage);
+                }
             }
             
             // Aplicar fuerza física
