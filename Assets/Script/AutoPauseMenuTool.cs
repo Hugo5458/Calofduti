@@ -5,42 +5,60 @@ using UnityEngine.EventSystems;
 using System.Collections;
 
 /// <summary>
-/// MENÚ DE PAUSA PROFESIONAL - AUTO-GENERADO
+/// ═══════════════════════════════════════════════════════════
+///  MENÚ DE PAUSA AUTO-GENERADO — TOOL PROFESIONAL
+/// ═══════════════════════════════════════════════════════════
 /// 
 /// INSTRUCCIONES:
-/// 1. Crea un GameObject vacío en tu escena de juego (SampleScene)
-/// 2. Añade SOLO este script
-/// 3. ¡Listo! Pulsa ESC para pausar
+///   1. Crea un GameObject vacío en tu escena de juego
+///   2. Añade SOLO este script al GameObject
+///   3. ¡Listo! Pulsa ESC para pausar
 /// 
 /// IMPORTANTE: Este script maneja ESC internamente.
-/// Si tienes otros scripts que también usan ESC para pausar
-/// (GameManager, PauseMenu, SimplePauseMenu, etc.),
+/// Si otros scripts también usan ESC para pausar,
 /// desactiva su lógica de pausa para evitar conflictos.
 /// 
 /// Funcionalidades:
-/// - Reanudar
-/// - Control de Volumen (slider)
-/// - Control de Brillo (slider)
-/// - Salir al Menú Principal
+///   - Reanudar partida
+///   - Control de Volumen (slider)
+///   - Control de Brillo (slider)
+///   - Reiniciar nivel
+///   - Salir al Menú Principal
+///   - Animaciones suaves de entrada/salida
+///   - Diseño oscuro profesional con acentos rojos
+/// 
+/// Métodos Públicos:
+///   - PauseGame()   → pausar desde otros scripts
+///   - ResumeGame()  → reanudar desde otros scripts
+///   - IsPaused()    → consultar estado de pausa
+/// ═══════════════════════════════════════════════════════════
 /// </summary>
 public class AutoPauseMenuTool : MonoBehaviour
 {
+    // ════════════════════════════════════════
+    //  CONFIGURACIÓN (Inspector)
+    // ════════════════════════════════════════
+
     [Header("Escena del Menú Principal")]
     [Tooltip("Nombre de la escena del menú principal")]
     public string mainMenuSceneName = "Inicio";
 
     [Header("Colores del Menú")]
     public Color fondoColor = new Color(0.02f, 0.02f, 0.05f, 0.92f);
+    public Color panelColor = new Color(0.08f, 0.08f, 0.10f, 0.97f);
     public Color botonColor = new Color(0.12f, 0.12f, 0.15f, 0.95f);
     public Color botonHoverColor = new Color(0.85f, 0.25f, 0.25f, 1f);
     public Color textoColor = new Color(0.95f, 0.95f, 0.95f, 1f);
     public Color accentColor = new Color(0.85f, 0.25f, 0.25f, 1f);
 
-    // Estado
+    // ════════════════════════════════════════
+    //  ESTADO INTERNO
+    // ════════════════════════════════════════
+
     private bool isPaused = false;
     private bool menuCreated = false;
 
-    // UI References
+    // Referencias UI
     private Canvas pauseCanvas;
     private GameObject panelFondo;
     private GameObject panelMenu;
@@ -53,17 +71,27 @@ public class AutoPauseMenuTool : MonoBehaviour
     // Fuente
     private Font fuente;
 
+    // ════════════════════════════════════════
+    //  INICIALIZACIÓN
+    // ════════════════════════════════════════
+
     void Start()
     {
+        // Intentar cargar fuente (LegacyRuntime primero, luego Arial)
         fuente = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
         if (fuente == null)
             fuente = Resources.GetBuiltinResource<Font>("Arial.ttf");
     }
 
+    // ════════════════════════════════════════
+    //  UPDATE — Detectar ESC
+    // ════════════════════════════════════════
+
     void Update()
     {
         if (Input.GetKeyDown(KeyCode.Escape))
         {
+            // Crear el menú la primera vez que se pulsa ESC
             if (!menuCreated)
             {
                 CrearMenuCompleto();
@@ -74,9 +102,9 @@ public class AutoPauseMenuTool : MonoBehaviour
         }
     }
 
-    // ============================
+    // ════════════════════════════════════════
     //  CONTROL DE PAUSA
-    // ============================
+    // ════════════════════════════════════════
 
     void TogglePause()
     {
@@ -91,6 +119,7 @@ public class AutoPauseMenuTool : MonoBehaviour
         isPaused = true;
         Time.timeScale = 0f;
 
+        // Mostrar cursor
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
@@ -108,21 +137,30 @@ public class AutoPauseMenuTool : MonoBehaviour
         isPaused = false;
         Time.timeScale = 1f;
 
+        // Ocultar cursor y bloquear
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
 
+        // Ocultar todo
         if (panelFondo != null) panelFondo.SetActive(false);
         if (panelMenu != null) panelMenu.SetActive(false);
         if (panelOpciones != null) panelOpciones.SetActive(false);
     }
 
+    // ════════════════════════════════════════
+    //  MÉTODOS PÚBLICOS (para otros scripts)
+    // ════════════════════════════════════════
+
+    /// <summary>
+    /// Consulta si el juego está pausado.
+    /// </summary>
     public bool IsPaused()
     {
         return isPaused;
     }
 
     /// <summary>
-    /// Método público para pausar desde otros scripts (GameController, etc.)
+    /// Pausa el juego desde otro script (GameController, etc.)
     /// </summary>
     public void PauseGame()
     {
@@ -131,20 +169,26 @@ public class AutoPauseMenuTool : MonoBehaviour
             CrearMenuCompleto();
             menuCreated = true;
         }
-        Pausar();
+        if (!isPaused)
+        {
+            Pausar();
+        }
     }
 
     /// <summary>
-    /// Método público para reanudar desde otros scripts (GameController, etc.)
+    /// Reanuda el juego desde otro script (GameController, etc.)
     /// </summary>
     public void ResumeGame()
     {
-        Reanudar();
+        if (isPaused)
+        {
+            Reanudar();
+        }
     }
 
-    // ============================
-    //  ANIMACIÓN DE ENTRADA
-    // ============================
+    // ════════════════════════════════════════
+    //  ANIMACIONES
+    // ════════════════════════════════════════
 
     IEnumerator AnimarEntrada()
     {
@@ -165,8 +209,7 @@ public class AutoPauseMenuTool : MonoBehaviour
         {
             tiempo += Time.unscaledDeltaTime;
             float t = Mathf.Clamp01(tiempo / duracion);
-            // Ease out cubic
-            float ease = 1f - Mathf.Pow(1f - t, 3f);
+            float ease = 1f - Mathf.Pow(1f - t, 3f); // Ease out cubic
 
             cg.alpha = Mathf.Lerp(0f, 1f, ease);
             rt.localScale = Vector3.Lerp(Vector3.one * 0.85f, Vector3.one, ease);
@@ -177,212 +220,6 @@ public class AutoPauseMenuTool : MonoBehaviour
         cg.alpha = 1f;
         rt.localScale = Vector3.one;
     }
-
-    // ============================
-    //  CREACIÓN DEL MENÚ COMPLETO
-    // ============================
-
-    void CrearMenuCompleto()
-    {
-        // Asegurar EventSystem
-        if (FindObjectOfType<EventSystem>() == null)
-        {
-            GameObject esObj = new GameObject("EventSystem_Pausa");
-            esObj.AddComponent<EventSystem>();
-            esObj.AddComponent<StandaloneInputModule>();
-        }
-
-        // Canvas
-        GameObject canvasObj = new GameObject("PauseMenuCanvas");
-        pauseCanvas = canvasObj.AddComponent<Canvas>();
-        pauseCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        pauseCanvas.sortingOrder = 900; // Debajo del BrightnessController (999) pero encima de todo lo demás
-
-        CanvasScaler scaler = canvasObj.AddComponent<CanvasScaler>();
-        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920, 1080);
-        scaler.matchWidthOrHeight = 0.5f;
-
-        canvasObj.AddComponent<GraphicRaycaster>();
-
-        // Fondo oscuro (cubre toda la pantalla)
-        panelFondo = CrearPanelFullscreen("Fondo", pauseCanvas.transform, fondoColor);
-
-        // Panel del menú principal
-        panelMenu = CrearPanelCentral("MenuPrincipal", pauseCanvas.transform, 420, 520);
-        CrearContenidoMenuPrincipal();
-
-        // Panel de opciones
-        panelOpciones = CrearPanelCentral("PanelOpciones", pauseCanvas.transform, 460, 420);
-        CrearContenidoOpciones();
-
-        // Ocultar todo inicialmente
-        panelFondo.SetActive(false);
-        panelMenu.SetActive(false);
-        panelOpciones.SetActive(false);
-    }
-
-    // ============================
-    //  MENÚ PRINCIPAL
-    // ============================
-
-    void CrearContenidoMenuPrincipal()
-    {
-        // Layout vertical
-        VerticalLayoutGroup vlg = panelMenu.AddComponent<VerticalLayoutGroup>();
-        vlg.padding = new RectOffset(40, 40, 35, 35);
-        vlg.spacing = 12;
-        vlg.childAlignment = TextAnchor.MiddleCenter;
-        vlg.childControlWidth = true;
-        vlg.childControlHeight = false;
-        vlg.childForceExpandWidth = true;
-        vlg.childForceExpandHeight = false;
-
-        // ── TÍTULO ──
-        CrearTexto(panelMenu.transform, "PAUSA", 42, FontStyle.Bold, accentColor, 55);
-
-        // Línea decorativa
-        CrearLinea(panelMenu.transform, accentColor, 2f);
-
-        CrearEspaciador(panelMenu.transform, 10);
-
-        // ── BOTÓN REANUDAR ──
-        CrearBoton(panelMenu.transform, "▶  REANUDAR", 58, () => {
-            Reanudar();
-        });
-
-        CrearEspaciador(panelMenu.transform, 4);
-
-        // ── BOTÓN OPCIONES (Luz / Sonido) ──
-        CrearBoton(panelMenu.transform, "⚙  OPCIONES", 55, () => {
-            panelMenu.SetActive(false);
-            panelOpciones.SetActive(true);
-            StartCoroutine(AnimarEntradaPanel(panelOpciones));
-        });
-
-        CrearEspaciador(panelMenu.transform, 4);
-
-        // ── BOTÓN REINICIAR ──
-        CrearBoton(panelMenu.transform, "↻  REINICIAR", 52, () => {
-            Time.timeScale = 1f;
-            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
-        });
-
-        CrearEspaciador(panelMenu.transform, 4);
-
-        // ── BOTÓN SALIR AL MENÚ ──
-        CrearBoton(panelMenu.transform, "✕  SALIR AL MENÚ", 52, () => {
-            Time.timeScale = 1f;
-            SceneManager.LoadScene(mainMenuSceneName);
-        });
-
-        CrearEspaciador(panelMenu.transform, 15);
-
-        // Línea decorativa inferior
-        CrearLinea(panelMenu.transform, new Color(1f, 1f, 1f, 0.15f), 1f);
-
-        // Texto inferior
-        CrearTexto(panelMenu.transform, "Pulsa ESC para reanudar", 15, FontStyle.Italic, new Color(0.6f, 0.6f, 0.6f, 0.8f), 22);
-    }
-
-    // ============================
-    //  PANEL DE OPCIONES
-    // ============================
-
-    void CrearContenidoOpciones()
-    {
-        VerticalLayoutGroup vlg = panelOpciones.AddComponent<VerticalLayoutGroup>();
-        vlg.padding = new RectOffset(40, 40, 30, 30);
-        vlg.spacing = 10;
-        vlg.childAlignment = TextAnchor.MiddleCenter;
-        vlg.childControlWidth = true;
-        vlg.childControlHeight = false;
-        vlg.childForceExpandWidth = true;
-        vlg.childForceExpandHeight = false;
-
-        // ── TÍTULO ──
-        CrearTexto(panelOpciones.transform, "OPCIONES", 36, FontStyle.Bold, accentColor, 48);
-        CrearLinea(panelOpciones.transform, accentColor, 2f);
-        CrearEspaciador(panelOpciones.transform, 12);
-
-        // ── VOLUMEN ──
-        CrearTexto(panelOpciones.transform, "♫  VOLUMEN", 20, FontStyle.Bold, textoColor, 28);
-
-        // Contenedor del slider de volumen + valor
-        GameObject volContainer = new GameObject("VolumenContainer");
-        volContainer.transform.SetParent(panelOpciones.transform, false);
-        RectTransform volRT = volContainer.AddComponent<RectTransform>();
-        volRT.sizeDelta = new Vector2(0, 35);
-        LayoutElement volLE = volContainer.AddComponent<LayoutElement>();
-        volLE.preferredHeight = 35;
-
-        HorizontalLayoutGroup volHLG = volContainer.AddComponent<HorizontalLayoutGroup>();
-        volHLG.spacing = 15;
-        volHLG.childAlignment = TextAnchor.MiddleCenter;
-        volHLG.childControlWidth = true;
-        volHLG.childControlHeight = true;
-        volHLG.childForceExpandWidth = true;
-        volHLG.childForceExpandHeight = true;
-
-        float volActual = PlayerPrefs.GetFloat("Volume", 1f);
-        sliderVolumen = CrearSliderEnContainer(volContainer.transform, 0f, 1f, volActual);
-        textoVolumenValor = CrearTextoEnContainer(volContainer.transform, Mathf.RoundToInt(volActual * 100) + "%", 50);
-
-        sliderVolumen.onValueChanged.AddListener((valor) => {
-            AudioListener.volume = valor;
-            PlayerPrefs.SetFloat("Volume", valor);
-            PlayerPrefs.Save();
-            if (textoVolumenValor != null)
-                textoVolumenValor.text = Mathf.RoundToInt(valor * 100) + "%";
-        });
-
-        CrearEspaciador(panelOpciones.transform, 15);
-
-        // ── BRILLO ──
-        CrearTexto(panelOpciones.transform, "☀  BRILLO", 20, FontStyle.Bold, textoColor, 28);
-
-        // Contenedor del slider de brillo + valor
-        GameObject briContainer = new GameObject("BrilloContainer");
-        briContainer.transform.SetParent(panelOpciones.transform, false);
-        RectTransform briRT = briContainer.AddComponent<RectTransform>();
-        briRT.sizeDelta = new Vector2(0, 35);
-        LayoutElement briLE = briContainer.AddComponent<LayoutElement>();
-        briLE.preferredHeight = 35;
-
-        HorizontalLayoutGroup briHLG = briContainer.AddComponent<HorizontalLayoutGroup>();
-        briHLG.spacing = 15;
-        briHLG.childAlignment = TextAnchor.MiddleCenter;
-        briHLG.childControlWidth = true;
-        briHLG.childControlHeight = true;
-        briHLG.childForceExpandWidth = true;
-        briHLG.childForceExpandHeight = true;
-
-        float briActual = PlayerPrefs.GetFloat("Brightness", 1f);
-        sliderBrillo = CrearSliderEnContainer(briContainer.transform, 0.1f, 1f, briActual);
-        textoBrilloValor = CrearTextoEnContainer(briContainer.transform, Mathf.RoundToInt(briActual * 100) + "%", 50);
-
-        sliderBrillo.onValueChanged.AddListener((valor) => {
-            if (BrightnessController.Instance != null)
-                BrightnessController.Instance.SetBrightness(valor);
-            PlayerPrefs.SetFloat("Brightness", valor);
-            PlayerPrefs.Save();
-            if (textoBrilloValor != null)
-                textoBrilloValor.text = Mathf.RoundToInt(valor * 100) + "%";
-        });
-
-        CrearEspaciador(panelOpciones.transform, 20);
-
-        // ── BOTÓN VOLVER ──
-        CrearBoton(panelOpciones.transform, "←  VOLVER", 52, () => {
-            panelOpciones.SetActive(false);
-            panelMenu.SetActive(true);
-            StartCoroutine(AnimarEntradaPanel(panelMenu));
-        });
-    }
-
-    // ============================
-    //  ANIMACIÓN GENÉRICA DE PANEL
-    // ============================
 
     IEnumerator AnimarEntradaPanel(GameObject panel)
     {
@@ -413,9 +250,196 @@ public class AutoPauseMenuTool : MonoBehaviour
         rt.localScale = Vector3.one;
     }
 
-    // ============================
-    //  MÉTODOS AUXILIARES DE UI
-    // ============================
+    // ════════════════════════════════════════
+    //  CREACIÓN DEL MENÚ COMPLETO
+    // ════════════════════════════════════════
+
+    void CrearMenuCompleto()
+    {
+        // Asegurar que existe un EventSystem
+        if (FindObjectOfType<EventSystem>() == null)
+        {
+            GameObject esObj = new GameObject("EventSystem_Pausa");
+            esObj.AddComponent<EventSystem>();
+            esObj.AddComponent<StandaloneInputModule>();
+        }
+
+        // ── CANVAS ──
+        GameObject canvasObj = new GameObject("PauseMenuCanvas_Auto");
+        pauseCanvas = canvasObj.AddComponent<Canvas>();
+        pauseCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        pauseCanvas.sortingOrder = 900;
+
+        CanvasScaler scaler = canvasObj.AddComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1920, 1080);
+        scaler.matchWidthOrHeight = 0.5f;
+
+        canvasObj.AddComponent<GraphicRaycaster>();
+
+        // ── FONDO OSCURO (pantalla completa) ──
+        panelFondo = CrearPanelFullscreen("Fondo", pauseCanvas.transform, fondoColor);
+
+        // ── PANEL MENÚ PRINCIPAL ──
+        panelMenu = CrearPanelCentral("MenuPrincipal", pauseCanvas.transform, 420, 530);
+        CrearContenidoMenuPrincipal();
+
+        // ── PANEL OPCIONES ──
+        panelOpciones = CrearPanelCentral("PanelOpciones", pauseCanvas.transform, 460, 420);
+        CrearContenidoOpciones();
+
+        // Ocultar todo inicialmente
+        panelFondo.SetActive(false);
+        panelMenu.SetActive(false);
+        panelOpciones.SetActive(false);
+
+        Debug.Log("[AutoPauseMenuTool] Menú de pausa creado correctamente.");
+    }
+
+    // ════════════════════════════════════════
+    //  CONTENIDO: MENÚ PRINCIPAL
+    // ════════════════════════════════════════
+
+    void CrearContenidoMenuPrincipal()
+    {
+        // Layout vertical
+        VerticalLayoutGroup vlg = panelMenu.AddComponent<VerticalLayoutGroup>();
+        vlg.padding = new RectOffset(40, 40, 35, 35);
+        vlg.spacing = 12;
+        vlg.childAlignment = TextAnchor.MiddleCenter;
+        vlg.childControlWidth = true;
+        vlg.childControlHeight = false;
+        vlg.childForceExpandWidth = true;
+        vlg.childForceExpandHeight = false;
+
+        // ── TÍTULO ──
+        CrearTexto(panelMenu.transform, "PAUSA", 42, FontStyle.Bold, accentColor, 55);
+
+        // Línea decorativa
+        CrearLinea(panelMenu.transform, accentColor, 2f);
+        CrearEspaciador(panelMenu.transform, 10);
+
+        // ── BOTÓN: REANUDAR ──
+        CrearBoton(panelMenu.transform, "▶  REANUDAR", 58, () =>
+        {
+            Reanudar();
+        });
+
+        CrearEspaciador(panelMenu.transform, 4);
+
+        // ── BOTÓN: OPCIONES ──
+        CrearBoton(panelMenu.transform, "⚙  OPCIONES", 55, () =>
+        {
+            panelMenu.SetActive(false);
+            panelOpciones.SetActive(true);
+            StartCoroutine(AnimarEntradaPanel(panelOpciones));
+        });
+
+        CrearEspaciador(panelMenu.transform, 4);
+
+        // ── BOTÓN: REINICIAR ──
+        CrearBoton(panelMenu.transform, "↻  REINICIAR", 52, () =>
+        {
+            Time.timeScale = 1f;
+            isPaused = false;
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        });
+
+        CrearEspaciador(panelMenu.transform, 4);
+
+        // ── BOTÓN: SALIR AL MENÚ ──
+        CrearBoton(panelMenu.transform, "✕  SALIR AL MENÚ", 52, () =>
+        {
+            Time.timeScale = 1f;
+            isPaused = false;
+            SceneManager.LoadScene(mainMenuSceneName);
+        });
+
+        CrearEspaciador(panelMenu.transform, 15);
+
+        // Línea decorativa inferior
+        CrearLinea(panelMenu.transform, new Color(1f, 1f, 1f, 0.15f), 1f);
+
+        // Texto inferior
+        CrearTexto(panelMenu.transform, "Pulsa ESC para reanudar", 15, FontStyle.Italic,
+            new Color(0.6f, 0.6f, 0.6f, 0.8f), 22);
+    }
+
+    // ════════════════════════════════════════
+    //  CONTENIDO: PANEL OPCIONES
+    // ════════════════════════════════════════
+
+    void CrearContenidoOpciones()
+    {
+        VerticalLayoutGroup vlg = panelOpciones.AddComponent<VerticalLayoutGroup>();
+        vlg.padding = new RectOffset(40, 40, 30, 30);
+        vlg.spacing = 10;
+        vlg.childAlignment = TextAnchor.MiddleCenter;
+        vlg.childControlWidth = true;
+        vlg.childControlHeight = false;
+        vlg.childForceExpandWidth = true;
+        vlg.childForceExpandHeight = false;
+
+        // ── TÍTULO ──
+        CrearTexto(panelOpciones.transform, "OPCIONES", 36, FontStyle.Bold, accentColor, 48);
+        CrearLinea(panelOpciones.transform, accentColor, 2f);
+        CrearEspaciador(panelOpciones.transform, 12);
+
+        // ═══ VOLUMEN ═══
+        CrearTexto(panelOpciones.transform, "♫  VOLUMEN", 20, FontStyle.Bold, textoColor, 28);
+
+        GameObject volContainer = CrearContainerHorizontal("VolumenContainer", panelOpciones.transform, 35);
+        float volActual = PlayerPrefs.GetFloat("Volume", 1f);
+        sliderVolumen = CrearSliderEnContainer(volContainer.transform, 0f, 1f, volActual);
+        textoVolumenValor = CrearTextoEnContainer(volContainer.transform,
+            Mathf.RoundToInt(volActual * 100) + "%", 50);
+
+        sliderVolumen.onValueChanged.AddListener((valor) =>
+        {
+            AudioListener.volume = valor;
+            PlayerPrefs.SetFloat("Volume", valor);
+            PlayerPrefs.Save();
+            if (textoVolumenValor != null)
+                textoVolumenValor.text = Mathf.RoundToInt(valor * 100) + "%";
+        });
+
+        CrearEspaciador(panelOpciones.transform, 15);
+
+        // ═══ BRILLO ═══
+        CrearTexto(panelOpciones.transform, "☀  BRILLO", 20, FontStyle.Bold, textoColor, 28);
+
+        GameObject briContainer = CrearContainerHorizontal("BrilloContainer", panelOpciones.transform, 35);
+        float briActual = PlayerPrefs.GetFloat("Brightness", 1f);
+        sliderBrillo = CrearSliderEnContainer(briContainer.transform, 0.1f, 1f, briActual);
+        textoBrilloValor = CrearTextoEnContainer(briContainer.transform,
+            Mathf.RoundToInt(briActual * 100) + "%", 50);
+
+        sliderBrillo.onValueChanged.AddListener((valor) =>
+        {
+            // Aplicar brillo si BrightnessController existe
+            if (BrightnessController.Instance != null)
+                BrightnessController.Instance.SetBrightness(valor);
+
+            PlayerPrefs.SetFloat("Brightness", valor);
+            PlayerPrefs.Save();
+            if (textoBrilloValor != null)
+                textoBrilloValor.text = Mathf.RoundToInt(valor * 100) + "%";
+        });
+
+        CrearEspaciador(panelOpciones.transform, 20);
+
+        // ── BOTÓN: VOLVER ──
+        CrearBoton(panelOpciones.transform, "←  VOLVER", 52, () =>
+        {
+            panelOpciones.SetActive(false);
+            panelMenu.SetActive(true);
+            StartCoroutine(AnimarEntradaPanel(panelMenu));
+        });
+    }
+
+    // ════════════════════════════════════════
+    //  CONSTRUCTORES DE UI
+    // ════════════════════════════════════════
 
     GameObject CrearPanelFullscreen(string nombre, Transform padre, Color color)
     {
@@ -447,7 +471,7 @@ public class AutoPauseMenuTool : MonoBehaviour
         rt.sizeDelta = new Vector2(ancho, alto);
 
         Image img = panel.AddComponent<Image>();
-        img.color = new Color(0.08f, 0.08f, 0.1f, 0.97f);
+        img.color = panelColor;
 
         // Borde sutil con Outline
         Outline outline = panel.AddComponent<Outline>();
@@ -457,7 +481,8 @@ public class AutoPauseMenuTool : MonoBehaviour
         return panel;
     }
 
-    Text CrearTexto(Transform padre, string contenido, int tamano, FontStyle estilo, Color color, float altura)
+    Text CrearTexto(Transform padre, string contenido, int tamano, FontStyle estilo,
+        Color color, float altura)
     {
         GameObject obj = new GameObject("Txt_" + contenido);
         obj.transform.SetParent(padre, false);
@@ -499,10 +524,14 @@ public class AutoPauseMenuTool : MonoBehaviour
         Button btn = btnObj.AddComponent<Button>();
         btn.targetGraphic = img;
 
+        // Configurar colores del botón
         ColorBlock colores = btn.colors;
         colores.normalColor = botonColor;
         colores.highlightedColor = botonHoverColor;
-        colores.pressedColor = new Color(botonHoverColor.r * 0.7f, botonHoverColor.g * 0.7f, botonHoverColor.b * 0.7f, 1f);
+        colores.pressedColor = new Color(
+            botonHoverColor.r * 0.7f,
+            botonHoverColor.g * 0.7f,
+            botonHoverColor.b * 0.7f, 1f);
         colores.selectedColor = botonColor;
         colores.fadeDuration = 0.1f;
         btn.colors = colores;
@@ -564,6 +593,28 @@ public class AutoPauseMenuTool : MonoBehaviour
         le.preferredHeight = altura;
     }
 
+    GameObject CrearContainerHorizontal(string nombre, Transform padre, float altura)
+    {
+        GameObject container = new GameObject(nombre);
+        container.transform.SetParent(padre, false);
+
+        RectTransform rt = container.AddComponent<RectTransform>();
+        rt.sizeDelta = new Vector2(0, altura);
+
+        LayoutElement le = container.AddComponent<LayoutElement>();
+        le.preferredHeight = altura;
+
+        HorizontalLayoutGroup hlg = container.AddComponent<HorizontalLayoutGroup>();
+        hlg.spacing = 15;
+        hlg.childAlignment = TextAnchor.MiddleCenter;
+        hlg.childControlWidth = true;
+        hlg.childControlHeight = true;
+        hlg.childForceExpandWidth = true;
+        hlg.childForceExpandHeight = true;
+
+        return container;
+    }
+
     Slider CrearSliderEnContainer(Transform padre, float min, float max, float valorInicial)
     {
         GameObject sliderObj = new GameObject("Slider");
@@ -580,7 +631,7 @@ public class AutoPauseMenuTool : MonoBehaviour
         slider.maxValue = max;
         slider.wholeNumbers = false;
 
-        // Background
+        // Background del slider
         GameObject bgObj = new GameObject("Background");
         bgObj.transform.SetParent(sliderObj.transform, false);
         RectTransform bgRT = bgObj.AddComponent<RectTransform>();
@@ -600,7 +651,7 @@ public class AutoPauseMenuTool : MonoBehaviour
         fillAreaRT.offsetMin = Vector2.zero;
         fillAreaRT.offsetMax = Vector2.zero;
 
-        // Fill
+        // Fill (la barra de color)
         GameObject fill = new GameObject("Fill");
         fill.transform.SetParent(fillArea.transform, false);
         RectTransform fillRT = fill.AddComponent<RectTransform>();
@@ -620,7 +671,7 @@ public class AutoPauseMenuTool : MonoBehaviour
         handleAreaRT.offsetMin = new Vector2(10, 0);
         handleAreaRT.offsetMax = new Vector2(-10, 0);
 
-        // Handle
+        // Handle (el botón deslizable)
         GameObject handle = new GameObject("Handle");
         handle.transform.SetParent(handleArea.transform, false);
         RectTransform handleRT = handle.AddComponent<RectTransform>();
@@ -628,7 +679,7 @@ public class AutoPauseMenuTool : MonoBehaviour
         Image handleImg = handle.AddComponent<Image>();
         handleImg.color = Color.white;
 
-        // Asignar referencias
+        // Asignar referencias al Slider
         slider.fillRect = fillRT;
         slider.handleRect = handleRT;
         slider.targetGraphic = handleImg;
@@ -661,6 +712,10 @@ public class AutoPauseMenuTool : MonoBehaviour
 
         return txt;
     }
+
+    // ════════════════════════════════════════
+    //  LIMPIEZA
+    // ════════════════════════════════════════
 
     void OnDestroy()
     {
