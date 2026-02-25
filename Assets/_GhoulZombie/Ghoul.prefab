@@ -1001,8 +1001,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   damage: 30
   attackRate: 1
+  maxHealth: 100
   detectionRange: 3000
-  attackRange: 1.5
+  attackRange: 30
   moveSpeed: 5
   rotationSpeed: 5
   gravity: -15

@@ -1798,7 +1798,7 @@ MonoBehaviour:
   attackRate: 0.25
   maxHealth: 100
   detectionRange: 3000
-  attackRange: 2.5
+  attackRange: 20
   moveSpeed: 10
   rotationSpeed: 5
   gravity: -15

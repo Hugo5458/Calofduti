@@ -48,8 +48,10 @@ public class PlayerMovementScript : MonoBehaviour {
 			}
 		}
 
-		// Force player to Default layer (0)
-		gameObject.layer = 0;
+		// Force player to Player layer (8) if exists, else Default (0)
+		int playerLayer = LayerMask.NameToLayer("Player");
+		gameObject.layer = playerLayer != -1 ? playerLayer : 0;
+		Debug.Log($"[PlayerMovementScript] Player en capa: {gameObject.layer} ({LayerMask.LayerToName(gameObject.layer)})");
 
 		// Force terrain to Default layer (0)
 		Terrain terrain = FindObjectOfType<Terrain>();

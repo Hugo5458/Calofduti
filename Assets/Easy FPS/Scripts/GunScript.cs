@@ -551,34 +551,46 @@ public class GunScript : MonoBehaviour {
 			if(shoot_sound_source != null)
 				shoot_sound_source.Play();
 
-			// === RAYCAST INSTANTÁNEO para detectar impacto (como un FPS real) ===
+			// === RAYCAST INSTANTÁNEO mejorado ===
+			// Si mainCamera es null, intentar usar la cámara principal
+			if (mainCamera == null && Camera.main != null) mainCamera = Camera.main.transform;
+			
 			Vector3 shootOrigin = mainCamera != null ? mainCamera.position : transform.position;
 			Vector3 shootDirection = mainCamera != null ? mainCamera.forward : transform.forward;
 			
-			Debug.Log($"=== [DISPARO] === Origen: {shootOrigin}, Dirección: {shootDirection}");
-			Debug.Log($"=== [DISPARO] === mainCamera null? {mainCamera == null}, Layer del arma: {gameObject.layer} ({LayerMask.LayerToName(gameObject.layer)})");
-			
 			// Añadir dispersión basada en gunPrecision
-			float spread = (1f - gunPrecision) * 0.02f;
-			shootDirection += new Vector3(
-				Random.Range(-spread, spread),
-				Random.Range(-spread, spread),
-				Random.Range(-spread, spread)
-			);
+			float spread = (1f - gunPrecision) * 0.01f; // Reducido para más precisión
+			shootDirection += mainCamera.right * Random.Range(-spread, spread) + mainCamera.up * Random.Range(-spread, spread);
 			shootDirection.Normalize();
 			
-			RaycastHit hitInfo;
-			float maxRange = 500f;
+			// DIBUJAR RAYO EN LA ESCENA (Solo visible en ventana 'Scene' para debug)
+			Debug.DrawRay(shootOrigin, shootDirection * 50f, Color.red, 1.0f);
 			
-			// Ignorar la capa del arma y del jugador
-			int layerMask = ~(LayerMask.GetMask("Ignore Raycast") | (1 << gameObject.layer));
-			Debug.Log($"=== [DISPARO] === LayerMask: {layerMask}");
+			RaycastHit hitInfo;
+			float maxRange = 1000f; // Aumentado por si acaso
+			
+			// LayerMask: Golpear TODO excepto al Jugador (capa 8/Player) y al Arma
+			// Intentamos obtener las capas por nombre para ser robustos
+			int playerLayerId = LayerMask.NameToLayer("Player");
+			int ignoreRaycastId = LayerMask.NameToLayer("Ignore Raycast");
+			
+			Debug.Log($"[GunScript] Capas - Player: {playerLayerId}, IgnoreRaycast: {ignoreRaycastId}, Arma: {gameObject.layer}");
+			
+			int playerLayerMask = 1 << playerLayerId;
+			int ignoreRaycastMask = 1 << ignoreRaycastId;
+			int myLayerMask = 1 << gameObject.layer;
+			
+			// Si no existen las capas, usamos fallbacks
+			if (playerLayerMask == (1 << -1)) playerLayerMask = 0;
+			if (ignoreRaycastMask == (1 << -1)) ignoreRaycastMask = 1 << 2;
+			
+			int layersToIgnore = playerLayerMask | ignoreRaycastMask | myLayerMask;
+			int layerMask = ~layersToIgnore;
 			
 			if (Physics.Raycast(shootOrigin, shootDirection, out hitInfo, maxRange, layerMask))
 			{
-				Debug.Log($"★★★ [DISPARO HIT] ★★★ Golpeó: '{hitInfo.collider.gameObject.name}' a distancia: {hitInfo.distance:F2}m");
-				Debug.Log($"★★★ [DISPARO HIT] ★★★ Layer: {hitInfo.collider.gameObject.layer} ({LayerMask.LayerToName(hitInfo.collider.gameObject.layer)}), Tag: {hitInfo.collider.tag}");
-				Debug.Log($"★★★ [DISPARO HIT] ★★★ Posición impacto: {hitInfo.point}");
+				// Debug log optimizado
+				Debug.Log($"<color=green>★★★ [HIT] Golpeó: '{hitInfo.collider.name}' en capa {LayerMask.LayerToName(hitInfo.collider.gameObject.layer)} ★★★</color>");
 				
 				// Listar TODOS los componentes del objeto golpeado
 				Component[] allComponents = hitInfo.collider.GetComponents<Component>();

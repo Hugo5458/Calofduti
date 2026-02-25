@@ -403,16 +403,81 @@ public class ZombieSpawner : MonoBehaviour
             animator.applyRootMotion = false; // ZombieAI controla el movimiento
         }
         
-        // El CharacterController se añade automáticamente en el Initialize() de ZombieAI
-        // pero nos aseguramos que exista un Collider básico para detección
-        Collider col = enemy.GetComponent<Collider>();
-        if (col == null)
+        // Poner tag "Enemy" para detección por tag
+        try { enemy.tag = "Enemy"; } catch { }
+        
+        // ============================================================
+        // COLLIDER PARA DETECCIÓN DE BALAS (NO TRIGGER)
+        // ============================================================
+        // Physics.Raycast NO detecta triggers. Necesitamos un collider
+        // NO-trigger para que las balas puedan golpear al zombie.
+        // Creamos un hijo "Hitbox" con CapsuleCollider + ZombieHitbox
+        // para no interferir con el CharacterController del padre.
+        
+        // Verificar si ya tiene un hitbox hijo
+        Transform existingHitbox = enemy.transform.Find("Hitbox");
+        if (existingHitbox == null)
         {
-            CapsuleCollider capsule = enemy.AddComponent<CapsuleCollider>();
-            capsule.center = new Vector3(0f, 1f, 0f);
-            capsule.radius = 0.4f;
-            capsule.height = 2f;
-            capsule.isTrigger = true; // Para que no interfiera con el CharacterController
+            bool isGhoul = enemy.name.ToLower().Contains("ghoul");
+            
+            // Crear hijo para hitbox de cuerpo
+            GameObject hitboxObj = new GameObject("Hitbox");
+            hitboxObj.transform.SetParent(enemy.transform, false);
+            hitboxObj.layer = enemy.layer; // Misma capa que el zombie
+            
+            CapsuleCollider hitboxCollider = hitboxObj.AddComponent<CapsuleCollider>();
+            hitboxCollider.isTrigger = false; // ¡IMPORTANTE! NO trigger para que Raycast lo detecte
+            
+            if (isGhoul)
+            {
+                hitboxCollider.center = new Vector3(0f, 2f, 0f);
+                hitboxCollider.radius = 0.8f;
+                hitboxCollider.height = 4f;
+            }
+            else
+            {
+                hitboxCollider.center = new Vector3(0f, 1f, 0f);
+                hitboxCollider.radius = 0.4f;
+                hitboxCollider.height = 2f;
+            }
+            
+            // Añadir Rigidbody kinematic para que el collider funcione sin física
+            Rigidbody rb = hitboxObj.AddComponent<Rigidbody>();
+            rb.isKinematic = true;
+            rb.useGravity = false;
+            
+            // Añadir ZombieHitbox para que GunScript pueda detectar y hacer daño
+            ZombieHitbox hitbox = hitboxObj.AddComponent<ZombieHitbox>();
+            hitbox.hitboxType = ZombieHitbox.HitboxType.Body;
+            hitbox.damageMultiplier = 1f;
+            
+            Debug.Log($"[ZombieSpawner] Hitbox creado para '{enemy.name}' - Collider NO-trigger para detección de balas");
+        }
+        
+        // Verificar colliders existentes en el objeto raíz
+        // Si tiene colliders trigger, convertirlos o añadir uno no-trigger
+        Collider[] existingColliders = enemy.GetComponents<Collider>();
+        bool hasNonTriggerCollider = false;
+        foreach (Collider c in existingColliders)
+        {
+            if (c is CharacterController) continue; // Ignorar CharacterController
+            if (!c.isTrigger)
+            {
+                hasNonTriggerCollider = true;
+                break;
+            }
+        }
+        
+        // Si no hay colliders no-trigger en el raíz (además del CharacterController),
+        // verificar que al menos el hitbox hijo exista
+        if (!hasNonTriggerCollider && existingColliders.Length == 0)
+        {
+            // Añadir un collider básico trigger solo para overlap detection (como separación de zombies)
+            CapsuleCollider overlapCollider = enemy.AddComponent<CapsuleCollider>();
+            overlapCollider.center = new Vector3(0f, 1f, 0f);
+            overlapCollider.radius = 0.4f;
+            overlapCollider.height = 2f;
+            overlapCollider.isTrigger = true;
         }
     }
 
