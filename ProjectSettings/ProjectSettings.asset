@@ -164,7 +164,7 @@ PlayerSettings:
   androidSupportedAspectRatio: 1
   androidMaxAspectRatio: 2.1
   applicationIdentifier:
-    Standalone: com.Photon-Engine.Fusion-Simple-FPS
+    Standalone: com.DefaultCompany.Calofduti
   buildNumber:
     Standalone: 0
     VisionOS: 0
@@ -788,7 +788,7 @@ PlayerSettings:
   platformArchitecture: {}
   scriptingBackend:
     Server: 1
-    Standalone: 1
+    Standalone: 0
   il2cppCompilerConfiguration: {}
   il2cppCodeGeneration: {}
   managedStrippingLevel: {}
